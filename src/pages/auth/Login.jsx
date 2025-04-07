@@ -6,7 +6,7 @@ import { useAuthConfig } from "../../context/AppState";
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
-  const [messageApi, contextHolder] = message.useMessage(); // Use messageApi properly
+  const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
   const { baseUrl, saveToken } = useAuthConfig();
 
@@ -15,20 +15,19 @@ const Login = () => {
     try {
       const response = await axios.post(`${baseUrl}/login`, values);
       console.log("Login successful!", response.data);
-      
-      messageApi.success("Login successful!");
 
-      sessionStorage.setItem("token", response.data.token);
+      // Save the token and user data in the context (global state)
+      saveToken(response.data.token, response.data.user);
+
+      messageApi.success("Login successful!");
 
       if (response.data.user.role === "super_admin") {
         navigate("/dashboard");
-      } else if (response.data.role === "staff") {
+      } else if (response.data.user.role === "cashier") {
         navigate("/staff-dashboard");
       }
     } catch (error) {
       console.log("Login failed:", error);
-
-      // Show error message
       messageApi.error(error.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
@@ -41,7 +40,7 @@ const Login = () => {
 
   return (
     <div className="flex justify-center items-center h-screen bg-gray-100">
-      {contextHolder} 
+      {contextHolder}
       <Card style={{ width: 300 }}>
         <Form
           name="login"
@@ -83,8 +82,8 @@ const Login = () => {
             {loading ? "Please wait..." : "Login"}
           </Button>
 
-          <div className="text-xs text-center">
-            Don't have an account? <NavLink to="/register">Register</NavLink>
+          <div className="text-xs">
+            Forget password? <NavLink to="/register">Reset</NavLink>
           </div>
         </Form>
       </Card>

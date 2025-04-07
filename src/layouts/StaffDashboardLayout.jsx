@@ -22,12 +22,10 @@ function getItem(label, key, icon, children) {
 // Define your menu items here
 const items = [
   getItem('Dashboard', '/dashboard', <PieChartOutlined />),
-  getItem('Staffs', '/dashboard/staffs', <DesktopOutlined />),
-  getItem('Categories', '/dashboard/categories', <DesktopOutlined />),
-  getItem('Products', '/dashboard/products', <DesktopOutlined />),
+  getItem('Store', '/staff-dashboard/store', <DesktopOutlined />),
 ];
 
-const DashboardLayout = () => {
+const StaffDashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { user } = useAuthConfig(); // Access the user from context
@@ -36,10 +34,10 @@ const DashboardLayout = () => {
 
   // Switch for updating title based on the current route path
   switch (location.pathname) {
-    case "/dashboard":
+    case "/staff-dashboard":
       title = "Dashboard";
       break;
-    case "/dashboard/profile":
+    case "/staff-dashboard/store":
       title = "Profile";
       break;
     case "/dashboard/categories":
@@ -106,4 +104,4 @@ const DashboardLayout = () => {
   );
 };
 
-export default DashboardLayout;
+export default StaffDashboardLayout;
