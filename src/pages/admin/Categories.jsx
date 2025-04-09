@@ -19,7 +19,7 @@ const Categories = () => {
   const { TextArea } = Input;
 
   const fetchCategories = async () => {
-    setLoading(true); // Set loading to true before fetching
+    setLoading(true); 
     const getCat = `${baseUrl}/get-cat`;
     try {
       const response = await axios.get(getCat, {
@@ -29,7 +29,7 @@ const Categories = () => {
     } catch (error) {
       console.error("Error fetching categories:", error);
     } finally {
-      setLoading(false); // Set loading to false after fetching data
+      setLoading(false);
     }
   };
 

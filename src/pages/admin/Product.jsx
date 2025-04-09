@@ -7,6 +7,7 @@ import moment from "moment";
 import { useAuthConfig } from "../../context/AppState";
 import axios from "axios";
 import productImg from "../../assets/product-default.png";
+import DotLoader from "react-spinners/DotLoader";
 
 const Product = () => {
   const { baseUrl, token, user } = useAuthConfig();
@@ -33,9 +34,12 @@ const Product = () => {
     const formData = new FormData();
     formData.append("title", values.title);
     formData.append("description", values.description);
+    
+    // Append image only if it's selected
     if (imageFile) {
       formData.append("image", imageFile);
     }
+
     formData.append("unitPrice", values.unitPrice);
     formData.append("bulkPrice", values.bulkPrice);
     formData.append("sizes", values.sizes || []);
@@ -52,6 +56,11 @@ const Product = () => {
       moment(values.expiryDate).format("YYYY-MM-DD")
     );
     formData.append("category", values.category);
+
+    // Log FormData contents
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ": " + pair[1]);
+    }
 
     try {
       setLoading(true);
@@ -106,6 +115,7 @@ const Product = () => {
   };
 
   const fetchProducts = async () => {
+    setLoading(true);
     const getProductsUrl = `${baseUrl}/products`;
     try {
       const response = await axios.get(getProductsUrl, {
@@ -121,6 +131,8 @@ const Product = () => {
         type: "error",
         content: error.response?.data?.message || "Failed to fetch products",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -267,17 +279,24 @@ const Product = () => {
           </Button>
         </div>
       </div>
-      <Table
-        dataSource={dataSource}
-        columns={columns}
-        size="small"
-        pagination={{
-          pageSize: 7,
-          position: ["bottomCenter"],
-          className: "custom-pagination",
-        }}
-        className="custom-table"
-      />
+      {loading ? (
+        <div className="flex justify-center items-center my-4 h-60 bg-white">
+          <DotLoader />
+        </div>
+      ) : (
+        // Show the table only after the data has been fetched
+        <Table
+          columns={columns}
+          dataSource={dataSource}
+          size="small"
+          pagination={{
+            pageSize: 7,
+            position: ["bottomCenter"],
+            className: "custom-pagination",
+          }}
+          className="custom-table"
+        />
+      )}
 
       <Modal
         title="Add Product"
@@ -292,9 +311,7 @@ const Product = () => {
                 label="Product Name"
                 name="title"
                 className="mb-2"
-                rules={[
-                  { required: true, message: "Please input product name!" },
-                ]}
+                rules={[{ required: true, message: "Please input product name!" }]}
               >
                 <Input placeholder="Enter product name" />
               </Form.Item>
@@ -304,12 +321,7 @@ const Product = () => {
                 label="Description"
                 name="description"
                 className="mb-2"
-                rules={[
-                  {
-                    required: true,
-                    message: "Please input product description!",
-                  },
-                ]}
+                rules={[{ required: true, message: "Please input product description!" }]}
               >
                 <Input.TextArea placeholder="Enter product description" />
               </Form.Item>
@@ -322,9 +334,7 @@ const Product = () => {
                 label="Unit Price"
                 name="unitPrice"
                 className="mb-2"
-                rules={[
-                  { required: true, message: "Please input unit price!" },
-                ]}
+                rules={[{ required: true, message: "Please input unit price!" }]}
               >
                 <Input placeholder="Enter unit price" type="number" />
               </Form.Item>
@@ -334,9 +344,7 @@ const Product = () => {
                 label="Bulk Price"
                 name="bulkPrice"
                 className="mb-2"
-                rules={[
-                  { required: true, message: "Please input bulk price!" },
-                ]}
+                rules={[{ required: true, message: "Please input bulk price!" }]}
               >
                 <Input placeholder="Enter bulk price" type="number" />
               </Form.Item>
@@ -349,12 +357,7 @@ const Product = () => {
                 label="Sizes"
                 name="sizes"
                 className="mb-2"
-                rules={[
-                  {
-                    required: true,
-                    message: "Please select at least one size!",
-                  },
-                ]}
+                rules={[{ required: true, message: "Please select at least one size!" }]}
               >
                 <Select
                   mode="multiple"
@@ -417,12 +420,7 @@ const Product = () => {
                 label="Manufacturing Date"
                 name="manufacturingDate"
                 className="mb-2"
-                rules={[
-                  {
-                    required: true,
-                    message: "Please select manufacturing date!",
-                  },
-                ]}
+                rules={[{ required: true, message: "Please select manufacturing date!" }]}
               >
                 <DatePicker
                   format="YYYY-MM-DD"
@@ -439,9 +437,7 @@ const Product = () => {
                 label="Expiry Date"
                 name="expiryDate"
                 className="mb-2"
-                rules={[
-                  { required: true, message: "Please select expiry date!" },
-                ]}
+                rules={[{ required: true, message: "Please select expiry date!" }]}
               >
                 <DatePicker
                   format="YYYY-MM-DD"
@@ -451,13 +447,33 @@ const Product = () => {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item label="Product Image" name="image" className="mb-2">
+              <Form.Item
+                label="Category"
+                name="category"
+                className="mb-2"
+                rules={[{ required: true, message: "Please select a category!" }]}
+              >
+                <Select
+                  placeholder="Select category"
+                  options={categories.map((cat) => ({
+                    value: cat._id,
+                    label: cat.name,
+                  }))}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {/* Image Upload Section */}
+          <Row gutter={[16, 16]}>
+            <Col span={24}>
+              <Form.Item label="Product Image">
                 <Upload
-                  accept="image*"
-                  showUploadList={false}
+                  accept="image/*"
+                  name="image"
+                  showUploadList={false} // Prevent the automatic upload
                   beforeUpload={(file) => {
-                    const isJpgOrPng =
-                      file.type === "image/jpeg" || file.type === "image/png";
+                    const isJpgOrPng = file.type === "image/jpeg" || file.type === "image/png";
                     if (!isJpgOrPng) {
                       message.error("You can only upload JPG/PNG file!");
                     }
@@ -465,51 +481,40 @@ const Product = () => {
                     if (!isLt2M) {
                       message.error("Image must smaller than 2MB!");
                     }
-                    return isJpgOrPng && isLt2M;
-                  }}
-                  onChange={({ file }) => {
-                    if (file.status === "done") {
-                      setImageFile(file.originFileObj);
-                      setImagePreview(URL.createObjectURL(file.originFileObj));
-                    }
+                    setImageFile(file); // Store the file in state
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      setImagePreview(reader.result); // Set the preview of the image
+                    };
+                    reader.readAsDataURL(file);
+                    return false; // Prevent file from being uploaded automatically
                   }}
                 >
-                  <Button icon={<UploadOutlined />}>Upload Image</Button>
+                  <Button icon={<UploadOutlined />}>Click to Upload</Button>
                 </Upload>
-              </Form.Item>
-              {imagePreview && <img src={imagePreview} alt="Product Preview" />}
-            </Col>
-          </Row>
-
-          <Row gutter={[16, 16]}>
-            <Col span={12}>
-              <Form.Item
-                label="Category"
-                name="category"
-                className="mb-2"
-                rules={[{ required: true, message: "Please select category!" }]}
-              >
-                <Select placeholder="Select category">
-                  {categories.map((category) => (
-                    <Select.Option key={category._id} value={category._id}>
-                      {category.name}
-                    </Select.Option>
-                  ))}
-                </Select>
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="preview"
+                    style={{ width: "100px", marginTop: "10px", height: "100px" }}
+                  />
+                )}
               </Form.Item>
             </Col>
           </Row>
 
-          <div className="flex justify-between">
+          <div className="flex justify-end mt-4">
+          <Form.Item>
             <Button
               type="primary"
               htmlType="submit"
               loading={loading}
+              block
               className="!bg-black"
-              size="midium"
             >
               Add Product
             </Button>
+          </Form.Item>
           </div>
         </Form>
       </Modal>
