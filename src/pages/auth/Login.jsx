@@ -39,7 +39,7 @@ const Login = () => {
   };
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-100">
+    <div className="flex justify-center items-center h-screen bg-white">
       {contextHolder}
       <Card style={{ width: 300 }}>
         <Form
