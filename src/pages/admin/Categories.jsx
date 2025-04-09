@@ -4,13 +4,14 @@ import { useAuthConfig } from "../../context/AppState";
 import { Table, Tooltip, Modal, message, Form, Input, Button } from "antd";
 import { RiEditLine } from "react-icons/ri";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import DotLoader from "react-spinners/DotLoader";
 
 const Categories = () => {
   const { baseUrl, token, user } = useAuthConfig();
   const [dataSource, setDataSource] = useState([]);
   const [isOpen, setIsOpen] = useState(false); // For category editing modal
   const [categoryModalOpen, setCategoryModalOpen] = useState(false); // For "Add Category" modal
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // This should cover data fetching and actions
   const [form] = Form.useForm();
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [messageApi, contextHolder] = message.useMessage();
@@ -18,16 +19,17 @@ const Categories = () => {
   const { TextArea } = Input;
 
   const fetchCategories = async () => {
+    setLoading(true); // Set loading to true before fetching
     const getCat = `${baseUrl}/get-cat`;
     try {
       const response = await axios.get(getCat, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setDataSource(response.data.categories);
     } catch (error) {
       console.error("Error fetching categories:", error);
+    } finally {
+      setLoading(false); // Set loading to false after fetching data
     }
   };
 
@@ -55,25 +57,17 @@ const Categories = () => {
       onOk: async () => {
         try {
           setLoading(true);
-          const catDeleteUrl = `${baseUrl}/delete-cat/${record._id}`; // Using the category ID in the URL
+          const catDeleteUrl = `${baseUrl}/delete-cat/${record._id}`;
           const response = await axios.delete(catDeleteUrl, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           });
 
           // Check for success in response
           if (response.status === 200) {
-            messageApi.open({
-              type: "success",
-              content: "Category deleted successfully",
-            });
+            messageApi.open({ type: "success", content: "Category deleted successfully" });
             fetchCategories(); // Refetch categories after deletion
           } else {
-            messageApi.open({
-              type: "error",
-              content: "Failed to delete category",
-            });
+            messageApi.open({ type: "error", content: "Failed to delete category" });
           }
         } catch (error) {
           messageApi.open({
@@ -150,14 +144,9 @@ const Categories = () => {
     try {
       setLoading(true);
       const response = await axios.post(catUrl, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      messageApi.open({
-        type: "success",
-        content: "Category created successfully",
-      });
+      messageApi.open({ type: "success", content: "Category created successfully" });
       setCategoryModalOpen(false);
       form.resetFields();
       fetchCategories();
@@ -186,23 +175,32 @@ const Categories = () => {
       <div className="flex justify-between items-center my-4">
         <Button
           type="primary"
-          onClick={() => setCategoryModalOpen(true)} // Open the "Add Category" modal
+          onClick={() => setCategoryModalOpen(true)}
           className="!bg-black"
         >
           Add Category <PlusOutlined />
         </Button>
       </div>
-      <Table
-        columns={columns}
-        dataSource={dataSource}
-        size="small"
-        pagination={{
-          pageSize: 7,
-          position: ["bottomCenter"],
-          className: "custom-pagination",
-        }}
-        className="custom-table"
-      />
+
+      {/* Show loading spinner if data is being fetched */}
+      {loading ? (
+        <div className="flex justify-center items-center my-4 h-60 bg-white">
+          <DotLoader />
+        </div>
+      ) : (
+        // Show the table only after the data has been fetched
+        <Table
+          columns={columns}
+          dataSource={dataSource}
+          size="small"
+          pagination={{
+            pageSize: 7,
+            position: ["bottomCenter"],
+            className: "custom-pagination",
+          }}
+          className="custom-table"
+        />
+      )}
 
       {/* Modal to add a new Category */}
       <Modal
@@ -272,15 +270,10 @@ const Categories = () => {
                 `${baseUrl}/update-cat/${selectedRecord._id}`,
                 updatedCategory,
                 {
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
+                  headers: { Authorization: `Bearer ${token}` },
                 }
               );
-              messageApi.open({
-                type: "success",
-                content: "Category updated successfully",
-              });
+              messageApi.open({ type: "success", content: "Category updated successfully" });
               setIsOpen(false);
               form.resetFields();
               fetchCategories();

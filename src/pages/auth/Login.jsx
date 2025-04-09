@@ -14,7 +14,7 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await axios.post(`${baseUrl}/login`, values);
-      console.log("Login successful!", response.data);
+      // console.log("Login successful!", response.data);
 
       // Save the token and user data in the context (global state)
       saveToken(response.data.token, response.data.user);

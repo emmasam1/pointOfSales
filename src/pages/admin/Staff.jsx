@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Table, Modal, Form, Input, message, Dropdown } from "antd";
+import { Button, Table, Modal, Form, Input, message, Dropdown, Row, Col } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { useAuthConfig } from "../../context/AppState";
 import axios from "axios";
@@ -9,7 +9,7 @@ import { NavLink } from "react-router";
 const Staff = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [staffData, setStaffData] = useState([]); // To hold staff data
-  const { baseUrl, token } = useAuthConfig();
+  const { baseUrl, token, user } = useAuthConfig();
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage(); // Hook for message API
@@ -25,7 +25,7 @@ const Staff = () => {
     form.resetFields();
   };
 
-  // Handle form submission
+  // Handle form submission for adding staff
   const handleSubmit = async (values) => {
     const staffUrl = `${baseUrl}/invite-cashier`;
 
@@ -34,10 +34,13 @@ const Staff = () => {
       lastName: values.lastName,
       email: values.email,
       password: values.password,
+      phone: values.phone,
+      guarantorName: values.guarantorName,
+      guarantorPhone: values.guarantorPhone,
     };
 
     try {
-      setLoading(true); // Show loading indicator
+      setLoading(true); 
 
       const response = await axios.post(staffUrl, newStaff, {
         headers: {
@@ -48,8 +51,8 @@ const Staff = () => {
       // Log the API response
       console.log("API Response:", response.data);
 
-      // Assuming response.data contains the new staff member data
-      setStaffData((prevData) => [...prevData, response.data]);
+      // Re-fetch the latest staff data
+      fetchUsers();
 
       // Show success message
       messageApi.success("Staff Added Successfully");
@@ -58,21 +61,17 @@ const Staff = () => {
       setIsModalVisible(false);
       form.resetFields(); // Clear the form
     } catch (error) {
-      // Log the error for debugging
       console.error("Error adding staff:", error);
-
-      // Ensure the error message is from the response data, otherwise default to a generic message
       const errorMessage =
         error.response?.data?.message ||
         "An error occurred while adding the staff.";
-
-      // Show error message
       messageApi.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch staff data on load or token change
   const fetchUsers = async () => {
     const staffUrl = `${baseUrl}/users`;
     try {
@@ -82,7 +81,7 @@ const Staff = () => {
         },
       });
 
-      setStaffData(response.data.users);
+      setStaffData(response.data.users); // Populate staffData with the fetched users
     } catch (error) {
       console.error("Error fetching staff data:", error);
       messageApi.error("Failed to fetch staff data");
@@ -91,15 +90,20 @@ const Staff = () => {
 
   const assignStaff = async (record) => {
     const staffUrl = `${baseUrl}/assign-cashier`;
+    const data = {
+      cashierId: record._id,
+      shopId: user.parentShop,
+    };
 
     try {
-      const response = await axios.put(staffUrl, data, {
+      const response = await axios.post(staffUrl, data, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      console.log(response.data);
       messageApi.success("Staff Assigned Successfully");
+
+      fetchUsers(); // Re-fetch after assignment
     } catch (error) {
       console.error("Error assigning staff:", error);
       messageApi.error("Failed to assign staff");
@@ -111,6 +115,40 @@ const Staff = () => {
       fetchUsers();
     }
   }, [baseUrl, token]);
+
+  const blockUser = async (record) => {
+    const staffUrl = `${baseUrl}/deactivate`;
+    const data = {
+      userId: record._id,
+    };
+
+    try {
+      const response = await axios.put(staffUrl, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // Toggle status: Block or Unblock
+      const isBlocked = record.isAccountDeactivated;
+      const updatedStatus = !isBlocked;
+
+      messageApi.success(
+        updatedStatus ? "User Blocked Successfully" : "User Unblocked Successfully"
+      );
+
+      setStaffData((prevData) => {
+        return prevData.map((staff) =>
+          staff._id === record._id
+            ? { ...staff, isAccountDeactivated: updatedStatus }
+            : staff
+        );
+      });
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      messageApi.error("Failed to update user status");
+    }
+  };
 
   // Table columns
   const columns = [
@@ -132,23 +170,47 @@ const Staff = () => {
     },
     {
       title: "Phone",
-      dataIndex: "phone", // Assuming 'phone' exists in your data
+      dataIndex: "phone", 
       key: "phone",
     },
     {
       title: "Guarantor Name",
-      dataIndex: "guarantorName", // Assuming 'guarantorName' exists in your data
+      dataIndex: "guarantorName",
       key: "guarantorName",
     },
     {
       title: "Guarantor Phone",
-      dataIndex: "guarantorPhone", // Assuming 'guarantorPhone' exists in your data
+      dataIndex: "guarantorPhone",
       key: "guarantorPhone",
     },
     {
       title: "Email",
       dataIndex: "email",
       key: "email",
+    },
+    {
+      title: "Assigned",
+      dataIndex: "assigned", 
+      key: "assigned",
+      render: (_text, record) => {
+        return record.assignedShop ? (
+          <span className="text-green-500">Assigned</span>
+        ) : (
+          <span className="text-red-500">Not Assigned</span>
+        );
+      },
+    },
+    {
+      title: "Status",
+      dataIndex: "assigned", 
+      key: "assigned",
+      render: (_text, record) => {
+        return record.isAccountDeactivated ? (
+          <span className="text-red-500">Blocked</span>
+        ) : (
+          <span className="text-green-500">Active</span>
+        );
+      },
     },
     {
       title: "Actions",
@@ -164,12 +226,17 @@ const Staff = () => {
               {
                 key: "edit",
                 label: (
-                  <span onClick={() => assignStaff(_record)}>Assign User</span>
-                ), // Corrected function call
+                  <span
+                    className={_record.assignedShop ? "disable" : ""}
+                    onClick={() => !_record.assignedShop && assignStaff(_record)}
+                  >
+                    {_record.assignedShop ? "Assigned" : "Assign User"}
+                  </span>
+                ),
               },
               {
                 key: "delete",
-                label: <span>Block User</span>,
+                label: <span onClick={() => blockUser(_record)}>{_record.isAccountDeactivated ? "Unblock User" : "Block User"}</span>,
               },
             ],
           }}
@@ -186,7 +253,7 @@ const Staff = () => {
 
   return (
     <div className="p-4">
-      {contextHolder} {/* This needs to be rendered in the component JSX */}
+      {contextHolder}
 
       <div className="flex justify-between items-center my-4">
         <Button
@@ -203,7 +270,7 @@ const Staff = () => {
       <Table
         dataSource={staffData}
         columns={columns}
-        rowKey={(record) => record._id} // Ensure your rowKey is correct, it should be a unique identifier like _id
+        rowKey={(record) => record._id}
         size="small"
         pagination={{
           pageSize: 7,
@@ -219,7 +286,7 @@ const Staff = () => {
         open={isModalVisible}
         onCancel={handleCancel}
         footer={null}
-        width={500}
+        width={600}
       >
         <Form
           form={form}
@@ -230,50 +297,96 @@ const Staff = () => {
             lastName: "",
             email: "",
             password: "",
+            confirmPassword: "",
+            phone: "",
+            guarantorName: "",
+            guarantorPhone: "",
           }}
         >
-          <Form.Item
-            name="firstName"
-            label="First Name"
-            rules={[{ required: true, message: "Please input the first name!" }]}
-          >
-            <Input placeholder="Enter first name" />
-          </Form.Item>
-
-          <Form.Item
-            name="lastName"
-            label="Last Name"
-            rules={[{ required: true, message: "Please input the last name!" }]}
-          >
-            <Input placeholder="Enter last name" />
-          </Form.Item>
-
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[
-              { required: true, message: "Please input the email!" },
-              { type: "email", message: "Please input a valid email!" },
-            ]}
-          >
-            <Input placeholder="Enter email" />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            label="Password"
-            rules={[{ required: true, message: "Please input the password!" }]}
-          >
-            <Input.Password placeholder="Enter password" />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="firstName"
+                label="First Name"
+                rules={[{ required: true, message: "Please input the first name!" }]} >
+                <Input placeholder="Enter first name" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="lastName"
+                label="Last Name"
+                rules={[{ required: true, message: "Please input the last name!" }]} >
+                <Input placeholder="Enter last name" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                  { required: true, message: "Please input the email!" },
+                  { type: "email", message: "Please input a valid email!" },
+                ]}>
+                <Input placeholder="Enter email" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="phone"
+                label="Phone"
+                rules={[{ required: true, message: "Please input the phone number!" }]}>
+                <Input placeholder="Enter phone number" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="guarantorName"
+                label="Guarantor Name"
+                rules={[{ required: true, message: "Please input the guarantor's name!" }]}>
+                <Input placeholder="Enter guarantor name" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="guarantorPhone"
+                label="Guarantor Phone"
+                rules={[{ required: true, message: "Please input the guarantor's phone!" }]}>
+                <Input placeholder="Enter guarantor phone" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="password"
+                label="Password"
+                rules={[{ required: true, message: "Please input the password!" }]}>
+                <Input.Password placeholder="Enter password" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="confirmPassword"
+                label="Confirm Password"
+                dependencies={['password']}
+                rules={[
+                  { required: true, message: "Please confirm your password!" },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue('password') === value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error('The two passwords do not match!'));
+                    },
+                  }),
+                ]}>
+                <Input.Password placeholder="Confirm password" />
+              </Form.Item>
+            </Col>
+          </Row>
 
           <div className="flex justify-end">
-            <Button onClick={handleCancel} className="mr-2">
-              Cancel
-            </Button>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Submit
-            </Button>
+            <Button onClick={handleCancel} className="mr-2">Cancel</Button>
+            <Button type="primary" htmlType="submit" loading={loading}>Submit</Button>
           </div>
         </Form>
       </Modal>

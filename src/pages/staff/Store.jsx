@@ -1,23 +1,24 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Card, Button, Modal, message } from "antd";
-import { useReactToPrint } from "react-to-print";
+import React, { useState, useEffect, useRef } from 'react';
+import { Button, Modal, Card, message } from 'antd';
+import { IoAdd, IoCloseOutline } from 'react-icons/io5';
+import { RiSubtractFill } from 'react-icons/ri';
+import { useReactToPrint } from 'react-to-print';
+import axios from 'axios';
 import Receipt from "../../components/receipt/Receipt";
 import product_default from "../../assets/product-default.png";
-import { IoCloseOutline, IoAdd } from "react-icons/io5";
-import { RiSubtractFill } from "react-icons/ri";
 import { useAuthConfig } from "../../context/AppState";
-import axios from "axios";
 
 const Store = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [cart, setCart] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-  const receiptRef = useRef(null); // Correctly initialize the ref
+  // const receiptRef = useRef(null); // Correctly initialize the ref
   const { baseUrl, token } = useAuthConfig();
   const [products, setProducts] = useState([]);
   const [isPrinting, setIsPrinting] = useState(false); // Track print status
   const promiseResolveRef = useRef(null); // Ref to store the promise resolver
+  const receiptRef = useRef(); 
 
   // Fetch products from API
   const fetchProducts = async () => {
@@ -30,10 +31,10 @@ const Store = () => {
       });
       setProducts(response.data.products);
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error('Error fetching products:', error);
       messageApi.open({
-        type: "error",
-        content: error.response?.data?.message || "Failed to fetch products",
+        type: 'error',
+        content: error.response?.data?.message || 'Failed to fetch products',
       });
     }
   };
@@ -43,13 +44,6 @@ const Store = () => {
       fetchProducts(); // Only fetch when the token is available
     }
   }, [baseUrl, token]);
-
-  // Ensure valid numbers for the total calculation
-  const total = cart.reduce((acc, curr) => {
-    const unitPrice = Number(curr.unitPrice) || 0; // Convert price to number
-    const quantity = Number(curr.quantity) || 0; // Convert quantity to number
-    return acc + unitPrice * quantity;
-  }, 0);
 
   // Handle adding products to cart
   const handleProductClick = (product) => {
@@ -97,21 +91,22 @@ const Store = () => {
     setIsModalVisible(true);
   };
 
-  // Set up the printing functionality
   const handlePrint = useReactToPrint({
-    content: () => receiptRef.current, // Pass the correct ref to `content`
+    contentRef: receiptRef, 
     onBeforePrint: () => {
+
       return new Promise((resolve) => {
-        promiseResolveRef.current = resolve; // Store the resolve function
-        setIsPrinting(true); // Mark as printing
+        setTimeout(resolve, 200); 
       });
     },
     onAfterPrint: () => {
-      promiseResolveRef.current = null; // Reset the promise resolver
-      setIsPrinting(false); // Reset the printing status
-      setIsModalVisible(false); // Close the modal after printing
+      console.log("Printing finished!");
+      setIsModalVisible(false); 
     },
   });
+
+
+  const total = cart.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
 
   return (
     <div className="">
@@ -135,16 +130,16 @@ const Store = () => {
                 >
                   <Card
                     hoverable
-                    style={{ width: "100%", height: 200 }}
+                    style={{ width: '100%', height: 200 }}
                     className="p-1"
                     cover={
                       <img
                         alt={product.title}
                         src={product.image || product_default}
                         style={{
-                          width: "100%",
+                          width: '100%',
                           height: 90,
-                          objectFit: "contain",
+                          objectFit: 'contain',
                         }}
                       />
                     }
@@ -166,7 +161,7 @@ const Store = () => {
           {cart.length === 0 ? (
             <p>Cart is empty</p>
           ) : (
-            <div className="cart-container">
+            <div className="cart-container overflow-y-auto h-96">
               {cart.map((item, index) => {
                 const finalPrice = Number(
                   item.isDiscount
@@ -186,7 +181,7 @@ const Store = () => {
                         style={{
                           width: 40,
                           height: 40,
-                          objectFit: "contain",
+                          objectFit: 'contain',
                         }}
                       />
                       <div className="ml-4">
