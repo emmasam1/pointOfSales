@@ -1,27 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Button, Modal, Card, message } from 'antd';
-import { IoAdd, IoCloseOutline } from 'react-icons/io5';
-import { RiSubtractFill } from 'react-icons/ri';
-import { useReactToPrint } from 'react-to-print';
-import axios from 'axios';
+import React, { useState, useEffect, useRef } from "react";
+import { Button, Modal, Card, message } from "antd";
+import { IoAdd, IoCloseOutline } from "react-icons/io5";
+import { RiSubtractFill } from "react-icons/ri";
+import { useReactToPrint } from "react-to-print";
+import axios from "axios";
 import Receipt from "../../components/receipt/Receipt";
 import product_default from "../../assets/product-default.png";
 import { useAuthConfig } from "../../context/AppState";
+import DotLoader from "react-spinners/DotLoader";
 
 const Store = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [cart, setCart] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-  // const receiptRef = useRef(null); // Correctly initialize the ref
   const { baseUrl, token } = useAuthConfig();
   const [products, setProducts] = useState([]);
-  const [isPrinting, setIsPrinting] = useState(false); // Track print status
-  const promiseResolveRef = useRef(null); // Ref to store the promise resolver
-  const receiptRef = useRef(); 
+
+  const receiptRef = useRef();
 
   // Fetch products from API
   const fetchProducts = async () => {
+    setLoading(true);
     const getProductsUrl = `${baseUrl}/products`;
     try {
       const response = await axios.get(getProductsUrl, {
@@ -30,24 +30,29 @@ const Store = () => {
         },
       });
       setProducts(response.data.products);
+      console.log(response.data);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error("Error fetching products:", error);
       messageApi.open({
-        type: 'error',
-        content: error.response?.data?.message || 'Failed to fetch products',
+        type: "error",
+        content: error.response?.data?.message || "Failed to fetch products",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     if (token) {
-      fetchProducts(); // Only fetch when the token is available
+      fetchProducts();
     }
   }, [baseUrl, token]);
 
   // Handle adding products to cart
   const handleProductClick = (product) => {
-    const existingProductIndex = cart.findIndex((item) => item._id === product._id);
+    const existingProductIndex = cart.findIndex(
+      (item) => item._id === product._id
+    );
     if (existingProductIndex !== -1) {
       const updatedCart = cart.map((item, index) => {
         if (index === existingProductIndex) {
@@ -91,22 +96,66 @@ const Store = () => {
     setIsModalVisible(true);
   };
 
-  const handlePrint = useReactToPrint({
-    contentRef: receiptRef, 
-    onBeforePrint: () => {
+  // const handlePrint = useReactToPrint({
+  //   contentRef: receiptRef,
+  //   onBeforePrint: () => {
+  //     return new Promise((resolve) => {
+  //       setTimeout(resolve, 200);
+  //     });
+  //   },
+  //   onAfterPrint: () => {
+  //     console.log("Printing finished!");
+  //     setIsModalVisible(false);
+  //   },
+  // });
 
-      return new Promise((resolve) => {
-        setTimeout(resolve, 200); 
-      });
+  const total = cart.reduce(
+    (acc, item) => acc + item.unitPrice * item.quantity,
+    0
+  );
+  const handlePrint = useReactToPrint({
+    contentRef: receiptRef,
+    onBeforePrint: async () => {
+      const sellPayload = {
+        products: cart.map(item => ({
+          productId: item._id,
+          quantitySold: item.quantity,
+        })),
+      };
+  
+      console.log("Sending sale data:", sellPayload);
+      setLoading(true);
+      try {
+        await axios.post(`${baseUrl}/sell`, sellPayload, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+  
+        console.log("Products sold successfully!");
+        messageApi.success("Products sold successfully!");
+  
+        await fetchProducts();
+  
+        return new Promise(resolve => setTimeout(resolve, 200));
+      } catch (error) {
+        console.error("Failed to sell products:", error.response?.data || error);
+        messageApi.error(
+          error.response?.data?.message || "Sale failed. Printing canceled."
+        );
+        throw new Error("Sale failed, canceling print.");
+      } finally {
+        setLoading(false);
+      }
     },
     onAfterPrint: () => {
       console.log("Printing finished!");
-      setIsModalVisible(false); 
+      setIsModalVisible(false);
+      setCart([]);
     },
   });
-
-
-  const total = cart.reduce((acc, item) => acc + item.unitPrice * item.quantity, 0);
+  
+  
 
   return (
     <div className="">
@@ -114,45 +163,70 @@ const Store = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 relative">
         {/* Product List */}
         <div className="lg:col-span-2 p-2">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 relative top-10">
-            {products.map((product, index) => {
-              const finalPrice = Number(
-                product.isDiscount
-                  ? product.unitPrice - product.discountAmount
-                  : product.unitPrice
-              ) || 0;
+          {loading ? (
+            <div className="flex justify-center items-center my-4 h-60 bg-white">
+              <DotLoader />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 relative top-10">
+              {products.map((product, index) => {
+                const finalPrice =
+                  Number(
+                    product.isDiscount
+                      ? product.unitPrice - product.discountAmount
+                      : product.unitPrice
+                  ) || 0;
 
-              return (
-                <div
-                  key={index}
-                  className="p-2"
-                  onClick={() => handleProductClick(product)}
-                >
-                  <Card
-                    hoverable
-                    style={{ width: '100%', height: 200 }}
-                    className="p-1"
-                    cover={
-                      <img
-                        alt={product.title}
-                        src={product.image || product_default}
-                        style={{
-                          width: '100%',
-                          height: 90,
-                          objectFit: 'contain',
-                        }}
-                      />
-                    }
+                return (
+                  <div
+                    key={index}
+                    className=""
+                    onClick={() => handleProductClick(product)}
                   >
-                    <div className="text-center">
-                      <h3 className="font-semibold m-0">{product.title}</h3>
-                      <h3 className="">{`₦ ${product.unitPrice}`}</h3>
-                    </div>
-                  </Card>
-                </div>
-              );
-            })}
-          </div>
+                    <Card
+                      hoverable
+                      style={{ width: "100%", height: 220 }}
+                      className="p-1 relative"
+                      cover={
+                        <img
+                          alt={product.title}
+                          src={product.image || product_default}
+                          style={{
+                            width: "100%",
+                            height: 90,
+                            objectFit: "contain",
+                          }}
+                        />
+                      }
+                    >
+                      <div>
+                        <h3 className="font-bold m-0 text-xs mb-2">
+                          {product.title}
+                        </h3>
+                        <p className="font-semibold text-xs mb-1">{`Price: ₦${product.unitPrice}`}</p>
+                        <p
+                          className={`font-medium ${
+                            product.quantity < 10
+                              ? "text-red-500"
+                              : "text-gray-800"
+                          }`}
+                        >
+                          Quantity: {product.quantity}
+                          {product.quantity < 10 && (
+                            <span className="ml-2 text-sm italic">
+                              (Low stock!)
+                            </span>
+                          )}
+                        </p>
+                        {product.discountAmount != 0 ?(<p className="absolute text-red-500 text-xs bg-red-100 p-2 top-1 right-1">{`-₦${product.discountAmount}`}</p>) : ""}
+                        
+                      </div>
+                    </Card>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Cart Sidebar */}
@@ -163,11 +237,12 @@ const Store = () => {
           ) : (
             <div className="cart-container overflow-y-auto h-96">
               {cart.map((item, index) => {
-                const finalPrice = Number(
-                  item.isDiscount
-                    ? item.unitPrice - item.discountAmount
-                    : item.unitPrice
-                ) || 0;
+                const finalPrice =
+                  Number(
+                    item.isDiscount
+                      ? item.unitPrice - item.discountAmount
+                      : item.unitPrice
+                  ) || 0;
 
                 return (
                   <div
@@ -181,7 +256,7 @@ const Store = () => {
                         style={{
                           width: 40,
                           height: 40,
-                          objectFit: 'contain',
+                          objectFit: "contain",
                         }}
                       />
                       <div className="ml-4">
@@ -246,7 +321,7 @@ const Store = () => {
             className="bg-blue-700"
             onClick={handlePrint}
           >
-            Print
+            { loading ? 'Printing...' : 'Print Receipt'}
           </Button>,
         ]}
       >

@@ -15,7 +15,10 @@
   width: 100%;
   text-transform: uppercase;  /* Optional: make the text uppercase */
 }
-
+.ant-card-body{
+  padding: 10px !important;
+  margin-top: 5px;
+}
 
 /* :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
