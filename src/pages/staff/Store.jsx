@@ -30,7 +30,7 @@ const Store = () => {
         },
       });
       setProducts(response.data.products);
-      console.log(response.data);
+      // console.log(response.data);
     } catch (error) {
       console.error("Error fetching products:", error);
       messageApi.open({
@@ -117,13 +117,13 @@ const Store = () => {
     contentRef: receiptRef,
     onBeforePrint: async () => {
       const sellPayload = {
-        products: cart.map(item => ({
+        products: cart.map((item) => ({
           productId: item._id,
           quantitySold: item.quantity,
         })),
       };
-  
-      console.log("Sending sale data:", sellPayload);
+
+      // console.log("Sending sale data:", sellPayload);
       setLoading(true);
       try {
         await axios.post(`${baseUrl}/sell`, sellPayload, {
@@ -131,15 +131,18 @@ const Store = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-  
-        console.log("Products sold successfully!");
+
+        // console.log("Products sold successfully!");
         messageApi.success("Products sold successfully!");
-  
+
         await fetchProducts();
-  
-        return new Promise(resolve => setTimeout(resolve, 200));
+
+        return new Promise((resolve) => setTimeout(resolve, 200));
       } catch (error) {
-        console.error("Failed to sell products:", error.response?.data || error);
+        console.error(
+          "Failed to sell products:",
+          error.response?.data || error
+        );
         messageApi.error(
           error.response?.data?.message || "Sale failed. Printing canceled."
         );
@@ -149,13 +152,11 @@ const Store = () => {
       }
     },
     onAfterPrint: () => {
-      console.log("Printing finished!");
+      // console.log("Printing finished!");
       setIsModalVisible(false);
       setCart([]);
     },
   });
-  
-  
 
   return (
     <div className="">
@@ -177,16 +178,20 @@ const Store = () => {
                       : product.unitPrice
                   ) || 0;
 
+                const isOutOfStock = product.quantity === 0;
+
                 return (
                   <div
                     key={index}
                     className=""
-                    onClick={() => handleProductClick(product)}
+                    onClick={() => !isOutOfStock && handleProductClick(product)} // Only allow click if not out of stock
                   >
                     <Card
                       hoverable
                       style={{ width: "100%", height: 220 }}
-                      className="p-1 relative"
+                      className={`p-1 relative ${
+                        isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
                       cover={
                         <img
                           alt={product.title}
@@ -206,20 +211,30 @@ const Store = () => {
                         <p className="font-semibold text-xs mb-1">{`Price: ₦${product.unitPrice}`}</p>
                         <p
                           className={`font-medium ${
-                            product.quantity < 10
+                            isOutOfStock
                               ? "text-red-500"
+                              : product.quantity < 10
+                              ? "text-orange-500"
                               : "text-gray-800"
                           }`}
                         >
                           Quantity: {product.quantity}
-                          {product.quantity < 10 && (
+                          {isOutOfStock ? (
+                            <span className="ml-2 text-sm italic">
+                              (Out of stock!)
+                            </span>
+                          ) : product.quantity < 10 ? (
                             <span className="ml-2 text-sm italic">
                               (Low stock!)
                             </span>
-                          )}
+                          ) : null}
                         </p>
-                        {product.discountAmount != 0 ?(<p className="absolute text-red-500 text-xs bg-red-100 p-2 top-1 right-1">{`-₦${product.discountAmount}`}</p>) : ""}
-                        
+
+                        {product.discountAmount != 0 ? (
+                          <p className="absolute text-red-500 text-xs bg-red-100 p-2 top-1 right-1">{`-₦${product.discountAmount}`}</p>
+                        ) : (
+                          ""
+                        )}
                       </div>
                     </Card>
                   </div>
@@ -321,7 +336,7 @@ const Store = () => {
             className="bg-blue-700"
             onClick={handlePrint}
           >
-            { loading ? 'Printing...' : 'Print Receipt'}
+            {loading ? "Printing..." : "Print Receipt"}
           </Button>,
         ]}
       >
