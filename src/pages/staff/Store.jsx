@@ -210,7 +210,7 @@ const Store = () => {
                         </h3>
                         <p className="font-semibold text-xs mb-1">{`Price: ₦${product.unitPrice}`}</p>
                         <p
-                          className={`font-medium ${
+                          className={`font-medium text-xs ${
                             isOutOfStock
                               ? "text-red-500"
                               : product.quantity < 10
@@ -220,11 +220,11 @@ const Store = () => {
                         >
                           Quantity: {product.quantity}
                           {isOutOfStock ? (
-                            <span className="ml-2 text-sm italic">
+                            <span className="ml-2 text-xs italic">
                               (Out of stock!)
                             </span>
                           ) : product.quantity < 10 ? (
-                            <span className="ml-2 text-sm italic">
+                            <span className="ml-2 text-xs italic">
                               (Low stock!)
                             </span>
                           ) : null}
