@@ -20,33 +20,50 @@ const Store = () => {
   const receiptRef = useRef();
 
   // Fetch products from API
-  const fetchProducts = async () => {
-    setLoading(true);
-    const getProductsUrl = `${baseUrl}/products`;
+  const fetchProducts = async (silent = false) => {
+    if (!silent) setLoading(true);
+  
     try {
-      const response = await axios.get(getProductsUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await axios.get(`${baseUrl}/products`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
+  
+      if (!response.data?.products) {
+        throw new Error("No products returned from the server.");
+      }
+  
       setProducts(response.data.products);
-      // console.log(response.data);
+  
+      if (!silent) {
+        messageApi.success("Products loaded successfully.");
+      }
     } catch (error) {
       console.error("Error fetching products:", error);
-      messageApi.open({
-        type: "error",
-        content: error.response?.data?.message || "Failed to fetch products",
-      });
+      messageApi.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch products."
+      );
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+  
+  
 
   useEffect(() => {
     if (token) {
-      fetchProducts();
+      fetchProducts(); 
+  
+      const intervalId = setInterval(() => {
+        fetchProducts(true); 
+      }, 20000); 
+  
+      return () => clearInterval(intervalId); 
     }
   }, [baseUrl, token]);
+  
+  
 
   // Handle adding products to cart
   const handleProductClick = (product) => {

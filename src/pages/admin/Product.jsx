@@ -1,25 +1,51 @@
 import { useEffect, useState } from "react";
-import { Button, Table, Input, Modal, Form, Upload, message, Row, Col, DatePicker, Dropdown, Select } from "antd";
+import {
+  Button,
+  Table,
+  Input,
+  Modal,
+  Form,
+  Upload,
+  message,
+  Row,
+  Col,
+  DatePicker,
+  Dropdown,
+  Select,
+} from "antd";
 import { UploadOutlined, PlusOutlined } from "@ant-design/icons";
 import dots from "../../assets/dots.png";
 import { NavLink } from "react-router";
-import moment from "moment";
 import { useAuthConfig } from "../../context/AppState";
 import axios from "axios";
 import productImg from "../../assets/product-default.png";
 import DotLoader from "react-spinners/DotLoader";
+import {
+  Dialog,
+  DialogBackdrop,
+  DialogPanel,
+  DialogTitle,
+} from "@headlessui/react";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import moment from "moment";
+import dayjs from "dayjs";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore"; // only if needed
+
+dayjs.extend(isSameOrBefore); // extend plugin if needed
 
 const Product = () => {
   const { baseUrl, token, user } = useAuthConfig();
   const [isOpen, setIsOpen] = useState(false);
-  const [categories, setCategories] = useState([]); // Initialize as empty array
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [messageApi, contextHolder] = message.useMessage();
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]); // New state for filtered products
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
 
   const handleCancelProductModal = () => {
     setIsOpen(false);
@@ -28,18 +54,59 @@ const Product = () => {
     setImageFile(null);
   };
 
+  // const onFinish = async (values) => {
+  //   const productUrl = `${baseUrl}/add-product`;
+
+  //   const formData = new FormData();
+  //   formData.append("title", values.title);
+  //   formData.append("description", values.description);
+  //   if (imageFile) formData.append("image", imageFile);
+  //   formData.append("unitPrice", values.unitPrice);
+  //   formData.append("bulkPrice", values.bulkPrice);
+  //   formData.append("sizes", values.sizes || []);
+  //   formData.append("isTrending", values.isTrending || false);
+  //   formData.append("isDiscount", values.isDiscount || false);
+  //   formData.append("discountAmount", values.discountAmount || 0);
+  //   formData.append("quantity", values.quantity);
+  //   formData.append(
+  //     "manufacturingDate",
+  //     moment(values.manufacturingDate).format("YYYY-MM-DD")
+  //   );
+  //   formData.append(
+  //     "expiryDate",
+  //     moment(values.expiryDate).format("YYYY-MM-DD")
+  //   );
+  //   formData.append("category", values.category);
+
+  //   try {
+  //     setLoading(true);
+  //     const response = await axios.post(productUrl, formData, {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+  //     messageApi.open({
+  //       type: "success",
+  //       content: "Product added successfully",
+  //     });
+  //     setProducts([...products, response.data.product]);
+  //     setFilteredProducts([...products, response.data.product]);
+  //     handleCancelProductModal();
+  //   } catch (error) {
+  //     const errorMessage =
+  //       error.response?.data?.message ||
+  //       "An error occurred while adding the product";
+  //     messageApi.open({ type: "error", content: errorMessage });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const onFinish = async (values) => {
     const productUrl = `${baseUrl}/add-product`;
 
     const formData = new FormData();
     formData.append("title", values.title);
     formData.append("description", values.description);
-    
-    // Append image only if it's selected
-    if (imageFile) {
-      formData.append("image", imageFile);
-    }
-
+    if (imageFile) formData.append("image", imageFile);
     formData.append("unitPrice", values.unitPrice);
     formData.append("bulkPrice", values.bulkPrice);
     formData.append("sizes", values.sizes || []);
@@ -49,84 +116,58 @@ const Product = () => {
     formData.append("quantity", values.quantity);
     formData.append(
       "manufacturingDate",
-      moment(values.manufacturingDate).format("YYYY-MM-DD")
+      values.manufacturingDate.format("YYYY-MM-DD")
     );
-    formData.append(
-      "expiryDate",
-      moment(values.expiryDate).format("YYYY-MM-DD")
-    );
+    formData.append("expiryDate", values.expiryDate.format("YYYY-MM-DD"));
     formData.append("category", values.category);
-
-    // Log FormData contents
-    for (let pair of formData.entries()) {
-      console.log(pair[0] + ": " + pair[1]);
-    }
 
     try {
       setLoading(true);
       const response = await axios.post(productUrl, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       messageApi.open({
         type: "success",
         content: "Product added successfully",
       });
-      console.log(response.data)
       setProducts([...products, response.data.product]);
-      setFilteredProducts([...products, response.data.product]); 
+      setFilteredProducts([...products, response.data.product]);
       handleCancelProductModal();
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
         "An error occurred while adding the product";
-      messageApi.open({
-        type: "error",
-        content: errorMessage,
-      });
+      messageApi.open({ type: "error", content: errorMessage });
     } finally {
       setLoading(false);
     }
   };
 
   const getCategories = async () => {
-    const getCat = `${baseUrl}/get-cat`;
-
     try {
-      const response = await axios.get(getCat, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await axios.get(`${baseUrl}/get-cat`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (response.data && Array.isArray(response.data.categories)) {
-        setCategories(response.data.categories);
-      } else {
-        setCategories([]);
-      }
+      setCategories(
+        Array.isArray(response.data.categories) ? response.data.categories : []
+      );
     } catch (error) {
       const errorMessage =
-        error.response?.data?.message || "An error occurred while fetching categories";
-      messageApi.open({
-        type: "error",
-        content: errorMessage,
-      });
+        error.response?.data?.message ||
+        "An error occurred while fetching categories";
+      messageApi.open({ type: "error", content: errorMessage });
     }
   };
 
   const fetchProducts = async () => {
     setLoading(true);
-    const getProductsUrl = `${baseUrl}/products`;
     try {
-      const response = await axios.get(getProductsUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await axios.get(`${baseUrl}/products`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       setProducts(response.data.products);
-      setFilteredProducts(response.data.products); // Set the filtered products as well
+      setFilteredProducts(response.data.products);
     } catch (error) {
-      console.error("Error fetching products:", error);
       messageApi.open({
         type: "error",
         content: error.response?.data?.message || "Failed to fetch products",
@@ -138,26 +179,24 @@ const Product = () => {
 
   const filterNonExpired = () => {
     const now = moment();
-    const nonExpired = products.filter((product) =>
-      moment(product.expiryDate).isAfter(now)
+    const nonExpired = products.filter((p) =>
+      moment(p.expiryDate).isAfter(now)
     );
     setFilteredProducts(nonExpired);
   };
 
   const filterExpired = () => {
     const now = moment();
-    const expired = products.filter((product) =>
-      moment(product.expiryDate).isBefore(now)
-    );
+    const expired = products.filter((p) => moment(p.expiryDate).isBefore(now));
     setFilteredProducts(expired);
   };
 
   useEffect(() => {
     if (token) {
       getCategories();
-      fetchProducts(); // Fetch products initially
+      fetchProducts();
     }
-  }, [baseUrl, token, messageApi]);
+  }, [baseUrl, token]);
 
   const dataSource = filteredProducts.map((product, index) => ({
     key: product._id || index.toString(),
@@ -181,7 +220,7 @@ const Product = () => {
     {
       title: "Product Image",
       key: "image",
-      render: (text, record) => (
+      render: (_text, record) => (
         <img
           src={record.image ? `${record.image}` : productImg}
           alt={record.title}
@@ -199,11 +238,7 @@ const Product = () => {
       dataIndex: "manufacturingDate",
       key: "manufacturingDate",
     },
-    {
-      title: "Exp. Date",
-      dataIndex: "expiryDate",
-      key: "expiryDate",
-    },
+    { title: "Exp. Date", dataIndex: "expiryDate", key: "expiryDate" },
     {
       title: "Actions",
       key: "operations",
@@ -214,7 +249,10 @@ const Product = () => {
               {
                 key: "view",
                 label: (
-                  <NavLink to={`/product/${_record.key}`} state={{ record: _record }}>
+                  <NavLink
+                    to={`/product/${_record.key}`}
+                    state={{ record: _record }}
+                  >
                     View Product
                   </NavLink>
                 ),
@@ -225,24 +263,118 @@ const Product = () => {
               },
               {
                 key: "delete",
-                label: <span>Delete</span>,
+                label: (
+                  <span
+                    onClick={() => {
+                      setProductToDelete(_record);
+                      setIsModalVisible(true);
+                    }}
+                  >
+                    Delete
+                  </span>
+                ),
               },
             ],
           }}
           trigger={["click"]}
         >
           <Button>
-            <img src={dots} alt="Actions" className="flex items-center justify-center w-1" />
+            <img src={dots} alt="Actions" className="w-1" />
           </Button>
         </Dropdown>
       ),
-      width: 100,
     },
   ];
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+    setProductToDelete(null);
+  };
+
+  const deleteProduct = async (_record) => {
+    setLoading(true);
+    if (loading) return;
+    if (!_record || !_record.key) return;
+
+    const productId = _record.key;
+    try {
+      const response = await axios.delete(`${baseUrl}/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      messageApi.open({
+        type: "success",
+        content: "Product deleted successfully",
+      });
+      fetchProducts();
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        "An error occurred while deleting the product";
+      messageApi.open({ type: "error", content: errorMessage });
+    } finally {
+      setIsModalVisible(false);
+      setProductToDelete(null);
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="p-2">
       {contextHolder}
+      <Dialog
+        open={isModalVisible}
+        onClose={handleCancel}
+        className="relative z-10"
+      >
+        <DialogBackdrop
+          transition
+          className="fixed inset-0 bg-gray-500/75 transition-opacity"
+        />
+
+        <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <DialogPanel
+              transition
+              className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+            >
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:size-10">
+                    <ExclamationTriangleIcon
+                      aria-hidden="true"
+                      className="size-6 text-red-600"
+                    />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <DialogTitle
+                      as="h3"
+                      className="text-base font-semibold text-gray-900"
+                    >
+                      Are you sure you want to delete this product?
+                    </DialogTitle>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                <button
+                  type="button"
+                  onClick={() => deleteProduct(productToDelete)}
+                  className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 sm:ml-3 sm:w-auto"
+                >
+                  {loading ? "Deleting..." : "Delete"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 shadow-xs ring-gray-300 ring-inset hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                >
+                  Cancel
+                </button>
+              </div>
+            </DialogPanel>
+          </div>
+        </div>
+      </Dialog>
       <div className="flex justify-between items-center my-4">
         <Button
           type="primary"
@@ -311,7 +443,9 @@ const Product = () => {
                 label="Product Name"
                 name="title"
                 className="mb-2"
-                rules={[{ required: true, message: "Please input product name!" }]}
+                rules={[
+                  { required: true, message: "Please input product name!" },
+                ]}
               >
                 <Input placeholder="Enter product name" />
               </Form.Item>
@@ -321,7 +455,12 @@ const Product = () => {
                 label="Description"
                 name="description"
                 className="mb-2"
-                rules={[{ required: true, message: "Please input product description!" }]}
+                rules={[
+                  {
+                    required: true,
+                    message: "Please input product description!",
+                  },
+                ]}
               >
                 <Input.TextArea placeholder="Enter product description" />
               </Form.Item>
@@ -334,7 +473,9 @@ const Product = () => {
                 label="Unit Price"
                 name="unitPrice"
                 className="mb-2"
-                rules={[{ required: true, message: "Please input unit price!" }]}
+                rules={[
+                  { required: true, message: "Please input unit price!" },
+                ]}
               >
                 <Input placeholder="Enter unit price" type="number" />
               </Form.Item>
@@ -344,7 +485,9 @@ const Product = () => {
                 label="Bulk Price"
                 name="bulkPrice"
                 className="mb-2"
-                rules={[{ required: true, message: "Please input bulk price!" }]}
+                rules={[
+                  { required: true, message: "Please input bulk price!" },
+                ]}
               >
                 <Input placeholder="Enter bulk price" type="number" />
               </Form.Item>
@@ -357,7 +500,12 @@ const Product = () => {
                 label="Sizes"
                 name="sizes"
                 className="mb-2"
-                rules={[{ required: true, message: "Please select at least one size!" }]}
+                rules={[
+                  {
+                    required: true,
+                    message: "Please select at least one size!",
+                  },
+                ]}
               >
                 <Select
                   mode="multiple"
@@ -420,7 +568,24 @@ const Product = () => {
                 label="Manufacturing Date"
                 name="manufacturingDate"
                 className="mb-2"
-                rules={[{ required: true, message: "Please select manufacturing date!" }]}
+                rules={[
+                  {
+                    required: true,
+                    message: "Please select manufacturing date!",
+                  },
+                  {
+                    validator(_, value) {
+                      if (value && value.isAfter(moment(), "day")) {
+                        return Promise.reject(
+                          new Error(
+                            "Manufacturing date cannot be in the future!"
+                          )
+                        );
+                      }
+                      return Promise.resolve();
+                    },
+                  },
+                ]}
               >
                 <DatePicker
                   format="YYYY-MM-DD"
@@ -437,7 +602,56 @@ const Product = () => {
                 label="Expiry Date"
                 name="expiryDate"
                 className="mb-2"
-                rules={[{ required: true, message: "Please select expiry date!" }]}
+                rules={[
+                  {
+                    required: true,
+                    message: "Please select expiry date!",
+                  },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const manufDate = getFieldValue("manufacturingDate");
+
+                      const expiry = value ? dayjs(value) : null;
+                      const manufacturing = manufDate ? dayjs(manufDate) : null;
+                      const today = dayjs();
+
+                      // console.log(
+                      //   "🔍 Expiry Selected:",
+                      //   expiry?.format("YYYY-MM-DD")
+                      // );
+                      // console.log(
+                      //   "🧪 Manufacturing Date:",
+                      //   manufacturing?.format("YYYY-MM-DD")
+                      // );
+                      // console.log("📅 Today:", today.format("YYYY-MM-DD"));
+
+                      if (!expiry) {
+                        return Promise.reject(
+                          new Error("Expiry date is required")
+                        );
+                      }
+
+                      if (expiry.isBefore(today, "day")) {
+                        return Promise.reject(
+                          new Error("Expiry date cannot be in the past!")
+                        );
+                      }
+
+                      if (
+                        manufacturing &&
+                        expiry.isSameOrBefore(manufacturing, "day")
+                      ) {
+                        return Promise.reject(
+                          new Error(
+                            "Expiry date must be after manufacturing date!"
+                          )
+                        );
+                      }
+
+                      return Promise.resolve();
+                    },
+                  }),
+                ]}
               >
                 <DatePicker
                   format="YYYY-MM-DD"
@@ -451,7 +665,9 @@ const Product = () => {
                 label="Category"
                 name="category"
                 className="mb-2"
-                rules={[{ required: true, message: "Please select a category!" }]}
+                rules={[
+                  { required: true, message: "Please select a category!" },
+                ]}
               >
                 <Select
                   placeholder="Select category"
@@ -473,7 +689,8 @@ const Product = () => {
                   name="image"
                   showUploadList={false} // Prevent the automatic upload
                   beforeUpload={(file) => {
-                    const isJpgOrPng = file.type === "image/jpeg" || file.type === "image/png";
+                    const isJpgOrPng =
+                      file.type === "image/jpeg" || file.type === "image/png";
                     if (!isJpgOrPng) {
                       message.error("You can only upload JPG/PNG file!");
                     }
@@ -496,7 +713,11 @@ const Product = () => {
                   <img
                     src={imagePreview}
                     alt="preview"
-                    style={{ width: "100px", marginTop: "10px", height: "100px" }}
+                    style={{
+                      width: "100px",
+                      marginTop: "10px",
+                      height: "100px",
+                    }}
                   />
                 )}
               </Form.Item>
@@ -504,17 +725,17 @@ const Product = () => {
           </Row>
 
           <div className="flex justify-end mt-4">
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              block
-              className="!bg-black"
-            >
-              Add Product
-            </Button>
-          </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                block
+                className="!bg-black"
+              >
+                Add Product
+              </Button>
+            </Form.Item>
           </div>
         </Form>
       </Modal>

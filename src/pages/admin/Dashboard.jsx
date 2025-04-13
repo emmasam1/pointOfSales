@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import axios from "axios";
 import { useAuthConfig } from "../../context/AppState";
 import { message, DatePicker, Table } from "antd";
 import dayjs from "dayjs";
+import DotLoader from "react-spinners/DotLoader";
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(false);
@@ -43,7 +52,9 @@ const Dashboard = () => {
       setSalesTrends(trends);
 
       const products = response.data?.topProducts || [];
-      const sortedProducts = [...products].sort((a, b) => b.totalSold - a.totalSold);
+      const sortedProducts = [...products].sort(
+        (a, b) => b.totalSold - a.totalSold
+      );
       setTopProducts(sortedProducts);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -122,7 +133,7 @@ const Dashboard = () => {
   }, [baseUrl, token]);
 
   useEffect(() => {
-    if (selectedDate && salesTrends && salesTrends.length > 0) {
+    if (selectedDate && salesTrends.length > 0) {
       calculateDailySales(selectedDate, salesTrends);
     }
   }, [selectedDate, salesTrends]);
@@ -148,18 +159,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         {/* 💰 Monthly Sales */}
         <div className="flex bg-emerald-200 p-3 rounded">
-          <div className="bg-emerald-500 p-3 rounded h-10">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              fill="white"
-              className="bi bi-currency-dollar font-bold"
-              viewBox="0 0 16 16"
-            >
-              <path d="M4 10.781c.148 1.667 1.513 2.85 3.591 3.003V15h1.043v-1.216c2.27-.179 3.678-1.438 3.678-3.3 0-1.59-.947-2.51-2.956-3.028l-.722-.187V3.467c1.122.11 1.879.714 2.07 1.616h1.47c-.166-1.6-1.54-2.748-3.54-2.875V1H7.591v1.233c-1.939.23-3.27 1.472-3.27 3.156 0 1.454.966 2.483 2.661 2.917l.61.162v4.031c-1.149-.17-1.94-.8-2.131-1.718z" />
-            </svg>
-          </div>
+          <div className="bg-emerald-500 p-3 rounded h-10">💰</div>
           <div className="ml-4">
             <h2 className="font-bold">Monthly Sales</h2>
             <h2 className="font-bold text-xl">{formatCurrency(totalSales)}</h2>
@@ -169,24 +169,15 @@ const Dashboard = () => {
         {/* 📅 Daily Sales + Date Picker */}
         <div className="bg-indigo-200 rounded p-3 ">
           <div className="flex justify-between items-center mb-2">
-            <div className="bg-indigo-500 p-3 rounded">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                fill="white"
-                className="bi bi-clock-history"
-                viewBox="0 0 16 16"
-              >
-                <path d="M8.515 3.5a.5.5 0 0 1 .5.5v3.379l2.121 2.122a.5.5 0 0 1-.707.707l-2.267-2.268A.5.5 0 0 1 8 7V4a.5.5 0 0 1 .515-.5z" />
-                <path d="M8 16A8 8 0 1 1 8 0a8 8 0 0 1 0 16z" />
-              </svg>
-            </div>
+            <div className="bg-indigo-500 p-3 rounded">📅</div>
             <div>
               <h2 className="font-bold">
-                Sales on {selectedDate ? selectedDate.format("YYYY-MM-DD") : "N/A"}
+                Sales on{" "}
+                {selectedDate ? selectedDate.format("YYYY-MM-DD") : "N/A"}
               </h2>
-              <h2 className="font-bold text-xl">{formatCurrency(dailySales)}</h2>
+              <h2 className="font-bold text-xl">
+                {formatCurrency(dailySales)}
+              </h2>
             </div>
           </div>
           <div className="flex justify-end">
@@ -201,18 +192,7 @@ const Dashboard = () => {
 
         {/* ❌ Expired */}
         <div className="flex bg-rose-200 p-3 rounded">
-          <div className="bg-rose-500 p-3 rounded h-10">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              fill="white"
-              className="bi bi-calendar3"
-              viewBox="0 0 16 16"
-            >
-              <path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2M1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857z" />
-            </svg>
-          </div>
+          <div className="bg-rose-500 p-3 rounded h-10">⚠️</div>
           <div className="ml-4">
             <h2 className="font-bold">Expired</h2>
             <h2 className="font-bold text-xl">{expiredCount}</h2>
@@ -221,18 +201,7 @@ const Dashboard = () => {
 
         {/* 🧾 Monthly Transactions */}
         <div className="flex bg-yellow-200 p-3 rounded">
-          <div className="bg-yellow-500 p-3 rounded h-10">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              fill="white"
-              className="bi bi-receipt"
-              viewBox="0 0 16 16"
-            >
-              <path d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l..." />
-            </svg>
-          </div>
+          <div className="bg-yellow-500 p-3 rounded h-10">🧾</div>
           <div className="ml-4">
             <h2 className="font-bold">Monthly Transactions</h2>
             <h2 className="font-bold text-xl">{totalTransactions}</h2>
@@ -244,25 +213,46 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
         {/* Top Selling Products */}
         <div className="bg-white rounded shadow p-4">
-          <h1 className="font-bold text-xl mb-2">Top Selling Product</h1>
-          <Table
-            size="small"
-            dataSource={topProducts}
-            columns={topProductsColumns}
-            rowKey="_id"
-            pagination={{
-              pageSize: 7,
-              position: ["bottomCenter"],
-              className: "custom-pagination",
-            }}
-            className="custom-table"
-          />
+          <h1 className="font-bold text-xl mb-2">Top Selling Products</h1>
+          {loading ? (
+            <div className="flex justify-center items-center my-4 h-60 bg-white">
+              <DotLoader />
+            </div>
+          ) : (
+            <Table
+              size="small"
+              dataSource={topProducts}
+              columns={topProductsColumns}
+              rowKey="_id"
+              pagination={{
+                pageSize: 7,
+                position: ["bottomCenter"],
+                className: "custom-pagination",
+              }}
+              className="custom-table"
+            />
+          )}
         </div>
 
-        {/* Placeholder for Future Widget */}
+        {/* 🧾 Sales Trend Chart */}
         <div className="bg-white rounded shadow p-4">
-          <h2 className="text-lg font-bold mb-2">Cashier Sales Record</h2>
-          <p>This could show charts, recent activity, or anything else you want!</p>
+          <h2 className="text-lg font-bold mb-2">Sales Trend</h2>
+          {loading ? (
+            <div className="flex justify-center items-center my-4 h-60 bg-white">
+              <DotLoader />
+            </div>
+          ) : (
+            <div style={{ width: "100%", height: 300 }}>
+              <ResponsiveContainer>
+                <BarChart data={salesTrends}>
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="totalSales" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </div>
     </div>
