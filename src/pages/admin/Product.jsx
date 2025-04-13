@@ -31,7 +31,7 @@ import moment from "moment";
 import dayjs from "dayjs";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore"; // only if needed
 
-dayjs.extend(isSameOrBefore); // extend plugin if needed
+dayjs.extend(isSameOrBefore);
 
 const Product = () => {
   const { baseUrl, token, user } = useAuthConfig();
@@ -46,12 +46,16 @@ const Product = () => {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [productBeingEdited, setProductBeingEdited] = useState(null);
 
   const handleCancelProductModal = () => {
     setIsOpen(false);
     form.resetFields();
     setImagePreview(null);
     setImageFile(null);
+    setIsEditing(false);
+    setProductBeingEdited(null);
   };
 
   // const onFinish = async (values) => {
@@ -100,9 +104,55 @@ const Product = () => {
   //   }
   // };
 
-  const onFinish = async (values) => {
-    const productUrl = `${baseUrl}/add-product`;
+  // const onFinish = async (values) => {
+  //   const productUrl = `${baseUrl}/add-product`;
 
+  //   const formData = new FormData();
+  //   formData.append("title", values.title);
+  //   formData.append("description", values.description);
+  //   if (imageFile) formData.append("image", imageFile);
+  //   formData.append("unitPrice", values.unitPrice);
+  //   formData.append("bulkPrice", values.bulkPrice);
+  //   formData.append("sizes", values.sizes || []);
+  //   formData.append("isTrending", values.isTrending || false);
+  //   formData.append("isDiscount", values.isDiscount || false);
+  //   formData.append("discountAmount", values.discountAmount || 0);
+  //   formData.append("quantity", values.quantity);
+  //   formData.append(
+  //     "manufacturingDate",
+  //     values.manufacturingDate.format("YYYY-MM-DD")
+  //   );
+  //   formData.append("expiryDate", values.expiryDate.format("YYYY-MM-DD"));
+  //   formData.append("category", values.category);
+
+  //   try {
+  //     setLoading(true);
+  //     const response = await axios.post(productUrl, formData, {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+  //     messageApi.open({
+  //       type: "success",
+  //       content: "Product added successfully",
+  //     });
+  //     setProducts([...products, response.data.product]);
+  //     setFilteredProducts([...products, response.data.product]);
+  //     handleCancelProductModal();
+  //   } catch (error) {
+  //     const errorMessage =
+  //       error.response?.data?.message ||
+  //       "An error occurred while adding the product";
+  //     messageApi.open({ type: "error", content: errorMessage });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  const onFinish = async (values) => {
+    const isEdit = isEditing && productBeingEdited?._id;
+    const productUrl = isEdit
+      ? `${baseUrl}/${productBeingEdited._id}`
+      : `${baseUrl}/add-product`;
+  
     const formData = new FormData();
     formData.append("title", values.title);
     formData.append("description", values.description);
@@ -114,34 +164,37 @@ const Product = () => {
     formData.append("isDiscount", values.isDiscount || false);
     formData.append("discountAmount", values.discountAmount || 0);
     formData.append("quantity", values.quantity);
-    formData.append(
-      "manufacturingDate",
-      values.manufacturingDate.format("YYYY-MM-DD")
-    );
+    formData.append("manufacturingDate", values.manufacturingDate.format("YYYY-MM-DD"));
     formData.append("expiryDate", values.expiryDate.format("YYYY-MM-DD"));
     formData.append("category", values.category);
-
+  
     try {
       setLoading(true);
-      const response = await axios.post(productUrl, formData, {
-        headers: { Authorization: `Bearer ${token}` },
+      const method = isEdit ? "patch" : "post";
+  
+      const response = await axios[method](productUrl, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
+  
       messageApi.open({
         type: "success",
-        content: "Product added successfully",
+        content: `Product ${isEdit ? "updated" : "added"} successfully`,
       });
-      setProducts([...products, response.data.product]);
-      setFilteredProducts([...products, response.data.product]);
+  
+      await fetchProducts(); // refresh list
       handleCancelProductModal();
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
-        "An error occurred while adding the product";
+        `An error occurred while ${isEdit ? "updating" : "adding"} the product`;
       messageApi.open({ type: "error", content: errorMessage });
     } finally {
       setLoading(false);
     }
   };
+  
 
   const getCategories = async () => {
     try {
@@ -259,8 +312,29 @@ const Product = () => {
               },
               {
                 key: "edit",
-                label: <span>Edit</span>,
+                label: (
+                  <span
+                    onClick={() => {
+                      const selectedProduct = products.find((p) => p._id === _record.key);
+                      if (selectedProduct) {
+                        setIsEditing(true);
+                        setIsOpen(true);
+                        setProductBeingEdited(selectedProduct);
+                        form.setFieldsValue({
+                          ...selectedProduct,
+                          manufacturingDate: dayjs(selectedProduct.manufacturingDate),
+                          expiryDate: dayjs(selectedProduct.expiryDate),
+                          category: selectedProduct.category?._id || selectedProduct.category,
+                        });
+                        setImagePreview(selectedProduct.image || null);
+                      }
+                    }}
+                  >
+                    Edit
+                  </span>
+                ),
               },
+
               {
                 key: "delete",
                 label: (
@@ -431,7 +505,7 @@ const Product = () => {
       )}
 
       <Modal
-        title="Add Product"
+        title={isEditing ? "Edit Product" : "Add Product"}
         open={isOpen}
         onCancel={handleCancelProductModal}
         footer={null}
@@ -733,7 +807,7 @@ const Product = () => {
                 block
                 className="!bg-black"
               >
-                Add Product
+                {isEditing ? "Update Product" : "Add Product"}
               </Button>
             </Form.Item>
           </div>
