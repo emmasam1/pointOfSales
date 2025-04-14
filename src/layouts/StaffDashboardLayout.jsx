@@ -33,7 +33,7 @@ const StaffDashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const { user, baseUrl } = useAuthConfig(); // Access the user from context
+  const { user, baseUrl } = useAuthConfig(); 
 
   let title = "Default Title";
 
@@ -42,7 +42,7 @@ const StaffDashboardLayout = () => {
       title = "Dashboard";
       break;
     case "/staff-dashboard/store":
-      title = "Profile";
+      title = "Store";
       break;
     default:
       break;

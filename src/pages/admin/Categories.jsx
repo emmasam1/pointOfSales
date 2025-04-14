@@ -9,20 +9,18 @@ import DotLoader from "react-spinners/DotLoader";
 const Categories = () => {
   const { baseUrl, token, user } = useAuthConfig();
   const [dataSource, setDataSource] = useState([]);
-  const [isOpen, setIsOpen] = useState(false); // For category editing modal
-  const [categoryModalOpen, setCategoryModalOpen] = useState(false); // For "Add Category" modal
-  const [loading, setLoading] = useState(false); // This should cover data fetching and actions
+  const [isOpen, setIsOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [messageApi, contextHolder] = message.useMessage();
-
   const { TextArea } = Input;
 
   const fetchCategories = async () => {
-    setLoading(true); 
-    const getCat = `${baseUrl}/get-cat`;
+    setLoading(true);
     try {
-      const response = await axios.get(getCat, {
+      const response = await axios.get(`${baseUrl}/get-cat`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setDataSource(response.data.categories);
@@ -34,9 +32,7 @@ const Categories = () => {
   };
 
   useEffect(() => {
-    if (!token) {
-      return;
-    }
+    if (!token) return;
     fetchCategories();
   }, [token, baseUrl]);
 
@@ -50,91 +46,29 @@ const Categories = () => {
     form.resetFields();
   };
 
-  const handleDeleteCategory = (record) => {
-    Modal.confirm({
-      title: "Are you sure you want to delete this category?",
-      content: `This action will permanently delete the category: ${record.name}`,
-      onOk: async () => {
-        try {
-          setLoading(true);
-          const catDeleteUrl = `${baseUrl}/delete-cat/${record._id}`;
-          const response = await axios.delete(catDeleteUrl, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+  const handleDeleteCategory = async (record) => {
+    console.log(record)
+    try {
+      setLoading(true);
+      const response = await axios.delete(`${baseUrl}/${record._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-          // Check for success in response
-          if (response.status === 200) {
-            messageApi.open({ type: "success", content: "Category deleted successfully" });
-            fetchCategories(); // Refetch categories after deletion
-          } else {
-            messageApi.open({ type: "error", content: "Failed to delete category" });
-          }
-        } catch (error) {
-          messageApi.open({
-            type: "error",
-            content: error instanceof Error ? error.message : "An error occurred",
-          });
-        } finally {
-          setLoading(false);
-        }
-      },
-      onCancel() {
-        // Do nothing on cancel
-      },
-    });
+      console.log(response)
+      if (response.status === 200) {
+        messageApi.success("Category deleted successfully");
+        fetchCategories();
+      } else {
+        messageApi.error("Failed to delete category");
+      }
+    } catch (error) {
+      messageApi.error(error?.response.data?.message || "An error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const columns = [
-    {
-      key: "1",
-      title: "S/N",
-      render: (_, record, index) => index + 1,
-      width: 50,
-    },
-    {
-      key: "3",
-      title: "Name",
-      dataIndex: "name",
-      width: 150,
-    },
-    {
-      key: "4",
-      title: "Description",
-      dataIndex: "description",
-      width: 400,
-    },
-    {
-      key: "5",
-      title: "Action",
-      dataIndex: "action",
-      width: 15,
-      render: (_, record) => {
-        return (
-          <div className="flex gap-5">
-            <Tooltip placement="bottom" title={"Edit Category"}>
-              <RiEditLine
-                size={20}
-                className="cursor-pointer text-green-700"
-                onClick={() => updateCategory(record)}
-              />
-            </Tooltip>
-
-            <Tooltip placement="bottom" title={"Delete Category"}>
-              <DeleteOutlined
-                size={20}
-                className="cursor-pointer text-red-600"
-                onClick={() => handleDeleteCategory(record)} // Show the confirmation modal
-              />
-            </Tooltip>
-          </div>
-        );
-      },
-    },
-  ];
-
   const createCategory = async (values) => {
-    const catUrl = `${baseUrl}/create-cat`;
-
     const data = {
       name: values.name,
       description: values.description,
@@ -143,24 +77,21 @@ const Categories = () => {
 
     try {
       setLoading(true);
-      const response = await axios.post(catUrl, data, {
+      await axios.post(`${baseUrl}/create-cat`, data, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      messageApi.open({ type: "success", content: "Category created successfully" });
+      messageApi.success("Category created successfully");
       setCategoryModalOpen(false);
       form.resetFields();
       fetchCategories();
     } catch (error) {
-      messageApi.open({
-        type: "error",
-        content: error instanceof Error ? error.message : "An error occurred",
-      });
+      messageApi.error(error?.message || "An error occurred");
     } finally {
       setLoading(false);
     }
   };
 
-  const updateCategory = async (record) => {
+  const updateCategory = (record) => {
     setIsOpen(true);
     setSelectedRecord(record);
     form.setFieldsValue({
@@ -169,29 +100,90 @@ const Categories = () => {
     });
   };
 
+
+  const handleUpdateSubmit = async (values) => {
+    const updatedCategory = {
+      ...selectedRecord,
+      name: values.name,
+      description: values.description,
+    };
+    try {
+      setLoading(true);
+      await axios.put(`${baseUrl}/${selectedRecord._id}`, updatedCategory, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      messageApi.success("Category updated successfully");
+      setIsOpen(false);
+      form.resetFields();
+      fetchCategories();
+    } catch (error) {
+      messageApi.error(error?.message || "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const columns = [
+    {
+      key: "1",
+      title: "S/N",
+      render: (_text, _record, index) => index + 1,
+      width: 50,
+    },
+    {
+      key: "2",
+      title: "Name",
+      dataIndex: "name",
+      width: 150,
+    },
+    {
+      key: "3",
+      title: "Description",
+      dataIndex: "description",
+      width: 400,
+    },
+    {
+      key: "4",
+      title: "Action",
+      width: 100,
+      render: (_text, record) => (
+        <div className="flex gap-5">
+          <Tooltip placement="bottom" title="Edit Category">
+            <RiEditLine
+              size={20}
+              className="cursor-pointer text-green-700"
+              onClick={() => updateCategory(record)}
+            />
+          </Tooltip>
+          <Tooltip placement="bottom" title="Delete Category">
+            <DeleteOutlined
+              className="cursor-pointer text-red-600"
+              onClick={() => handleDeleteCategory(record)}
+            />
+          </Tooltip>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="p-2">
       {contextHolder}
       <div className="flex justify-between items-center my-4">
-        <Button
-          type="primary"
-          onClick={() => setCategoryModalOpen(true)}
-          className="!bg-black"
-        >
+        <Button type="primary" onClick={() => setCategoryModalOpen(true)} className="!bg-black">
           Add Category <PlusOutlined />
         </Button>
       </div>
 
-      {/* Show loading spinner if data is being fetched */}
       {loading ? (
         <div className="flex justify-center items-center my-4 h-60 bg-white">
           <DotLoader />
         </div>
       ) : (
-        // Show the table only after the data has been fetched
         <Table
           columns={columns}
           dataSource={dataSource}
+          rowKey="_id"
           size="small"
           pagination={{
             pageSize: 7,
@@ -202,7 +194,7 @@ const Categories = () => {
         />
       )}
 
-      {/* Modal to add a new Category */}
+      {/* Modal: Add Category */}
       <Modal
         title="Add Category"
         open={categoryModalOpen}
@@ -210,16 +202,10 @@ const Categories = () => {
         footer={null}
         width={300}
       >
-        <Form
-          form={form}
-          name="category"
-          layout="vertical"
-          onFinish={createCategory}
-        >
+        <Form form={form} name="category" layout="vertical" onFinish={createCategory}>
           <Form.Item
             label="Category Name"
             name="name"
-            className="mb-2"
             rules={[{ required: true, message: "Please input category name!" }]}
           >
             <Input placeholder="Enter category name" />
@@ -228,29 +214,20 @@ const Categories = () => {
           <Form.Item
             label="Description"
             name="description"
-            className="mb-2"
             rules={[{ required: true, message: "Please input category description!" }]}
           >
-            <TextArea
-              placeholder="Category description"
-              autoSize={{ minRows: 3, maxRows: 5 }}
-            />
+            <TextArea placeholder="Category description" autoSize={{ minRows: 3, maxRows: 5 }} />
           </Form.Item>
 
           <div className="flex justify-end mt-4">
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              className="!bg-black"
-            >
+            <Button type="primary" htmlType="submit" loading={loading} className="!bg-black">
               {loading ? "Adding..." : "Add Category"}
             </Button>
           </div>
         </Form>
       </Modal>
 
-      {/* Modal to Edit an existing Category */}
+      {/* Modal: Edit Category */}
       <Modal
         title="Update Category"
         open={isOpen}
@@ -258,39 +235,10 @@ const Categories = () => {
         footer={null}
         width={300}
       >
-        <Form
-          form={form}
-          name="updateCategory"
-          layout="vertical"
-          onFinish={async (values) => {
-            const updatedCategory = { ...selectedRecord, ...values };
-            try {
-              setLoading(true);
-              await axios.put(
-                `${baseUrl}/update-cat/${selectedRecord._id}`,
-                updatedCategory,
-                {
-                  headers: { Authorization: `Bearer ${token}` },
-                }
-              );
-              messageApi.open({ type: "success", content: "Category updated successfully" });
-              setIsOpen(false);
-              form.resetFields();
-              fetchCategories();
-            } catch (error) {
-              messageApi.open({
-                type: "error",
-                content: error instanceof Error ? error.message : "An error occurred",
-              });
-            } finally {
-              setLoading(false);
-            }
-          }}
-        >
+        <Form form={form} name="updateCategory" layout="vertical" onFinish={handleUpdateSubmit}>
           <Form.Item
             label="Category Name"
             name="name"
-            className="mb-2"
             rules={[{ required: true, message: "Please input category name!" }]}
           >
             <Input placeholder="Enter category name" />
@@ -299,22 +247,13 @@ const Categories = () => {
           <Form.Item
             label="Description"
             name="description"
-            className="mb-2"
             rules={[{ required: true, message: "Please input category description!" }]}
           >
-            <TextArea
-              placeholder="Category description"
-              autoSize={{ minRows: 3, maxRows: 5 }}
-            />
+            <TextArea placeholder="Category description" autoSize={{ minRows: 3, maxRows: 5 }} />
           </Form.Item>
 
           <div className="flex justify-end mt-4">
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              className="!bg-black"
-            >
+            <Button type="primary" htmlType="submit" loading={loading} className="!bg-black">
               {loading ? "Updating..." : "Update Category"}
             </Button>
           </div>
