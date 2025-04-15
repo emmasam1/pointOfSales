@@ -11,248 +11,191 @@ import DotLoader from "react-spinners/DotLoader";
 
 const Store = () => {
   const [loading, setLoading] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(false);
   const [cart, setCart] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const { baseUrl, token } = useAuthConfig();
   const [products, setProducts] = useState([]);
+  const [receiptId, setReceiptId] = useState("");
+  const [receiptNumber, setReceiptNumber] = useState("");
 
   const receiptRef = useRef();
 
-  // Fetch products from API
   const fetchProducts = async (silent = false) => {
     if (!silent) setLoading(true);
-  
     try {
       const response = await axios.get(`${baseUrl}/products`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-  
-      if (!response.data?.products) {
-        throw new Error("No products returned from the server.");
-      }
-  
-      setProducts(response.data.products);
-  
-      if (!silent) {
-        messageApi.success("Products loaded successfully.");
-      }
+      setProducts(response.data.products || []);
+      if (!silent) messageApi.success("Products loaded successfully.");
     } catch (error) {
-      console.error("Error fetching products:", error);
-      messageApi.error(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch products."
-      );
+      messageApi.error("Failed to fetch products.");
     } finally {
       if (!silent) setLoading(false);
     }
   };
-  
-  
 
   useEffect(() => {
     if (token) {
-      fetchProducts(); 
-  
-      const intervalId = setInterval(() => {
-        fetchProducts(true); 
-      }, 20000); 
-  
-      return () => clearInterval(intervalId); 
+      fetchProducts();
+      const intervalId = setInterval(() => fetchProducts(true), 20000);
+      return () => clearInterval(intervalId);
     }
   }, [baseUrl, token]);
-  
-  
 
-  // Handle adding products to cart
   const handleProductClick = (product) => {
-    const existingProductIndex = cart.findIndex(
-      (item) => item._id === product._id
-    );
-    if (existingProductIndex !== -1) {
-      const updatedCart = cart.map((item, index) => {
-        if (index === existingProductIndex) {
-          return { ...item, quantity: item.quantity + 1 };
-        }
-        return item;
-      });
+    const index = cart.findIndex((item) => item._id === product._id);
+    if (index !== -1) {
+      const updatedCart = cart.map((item, i) =>
+        i === index ? { ...item, quantity: item.quantity + 1 } : item
+      );
       setCart(updatedCart);
     } else {
       setCart([...cart, { ...product, quantity: 1 }]);
     }
   };
 
-  // Handle plus/minus and remove for cart items
   const handlePlusClick = (index) => {
-    const updatedCart = cart.map((item, idx) => {
-      if (idx === index) {
-        return { ...item, quantity: item.quantity + 1 };
-      }
-      return item;
-    });
+    const updatedCart = cart.map((item, i) =>
+      i === index ? { ...item, quantity: item.quantity + 1 } : item
+    );
     setCart(updatedCart);
   };
 
   const handleMinusClick = (index) => {
-    const updatedCart = cart.map((item, idx) => {
-      if (idx === index && item.quantity > 1) {
-        return { ...item, quantity: item.quantity - 1 };
-      }
-      return item;
-    });
+    const updatedCart = cart.map((item, i) =>
+      i === index && item.quantity > 1
+        ? { ...item, quantity: item.quantity - 1 }
+        : item
+    );
     setCart(updatedCart);
   };
 
   const handleRemoveClick = (index) => {
-    const updatedCart = cart.filter((_, idx) => idx !== index);
+    const updatedCart = cart.filter((_, i) => i !== index);
     setCart(updatedCart);
   };
 
-  const logReceipt = () => {
+  const logReceipt = async () => {
     setIsModalVisible(true);
+    setReceiptLoading(true);
+  
+    const sellPayload = {
+      products: cart.map((item) => ({
+        productId: item._id,
+        quantitySold: item.quantity,
+      })),
+    };
+  
+    try {
+      const response = await axios.post(`${baseUrl}/preview`, sellPayload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+  
+      const { _id, receiptCode } = response.data.receipt;
+      setReceiptId(_id);
+      setReceiptNumber(receiptCode);
+      console.log(test);
+    } catch (error) {
+      messageApi.error("Failed to generate receipt.");
+    } finally {
+      setReceiptLoading(false);
+    }
   };
-
-  // const handlePrint = useReactToPrint({
-  //   contentRef: receiptRef,
-  //   onBeforePrint: () => {
-  //     return new Promise((resolve) => {
-  //       setTimeout(resolve, 200);
-  //     });
-  //   },
-  //   onAfterPrint: () => {
-  //     console.log("Printing finished!");
-  //     setIsModalVisible(false);
-  //   },
-  // });
+  
 
   const total = cart.reduce(
     (acc, item) => acc + item.unitPrice * item.quantity,
     0
   );
+
   const handlePrint = useReactToPrint({
     contentRef: receiptRef,
     onBeforePrint: async () => {
-      const sellPayload = {
-        products: cart.map((item) => ({
-          productId: item._id,
-          quantitySold: item.quantity,
-        })),
-      };
-
-      // console.log("Sending sale data:", sellPayload);
       setLoading(true);
       try {
-        await axios.post(`${baseUrl}/sell`, sellPayload, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        // console.log("Products sold successfully!");
+        // Sending receiptId in the body of the POST request.
+        const response = await axios.post(
+          `${baseUrl}/sell-receipt`, 
+          { receiptId }, // Make sure to wrap `receiptId` in an object
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         messageApi.success("Products sold successfully!");
-
+  
+        // Fetch the products after the sale
         await fetchProducts();
-
-        return new Promise((resolve) => setTimeout(resolve, 200));
+  
+        // Optional: Adding a delay to ensure the product fetch and API call have completed.
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        
+        // Returning a promise here ensures the printing only happens after these operations.
+        return true;
       } catch (error) {
-        console.error(
-          "Failed to sell products:",
-          error.response?.data || error
-        );
-        messageApi.error(
-          error.response?.data?.message || "Sale failed. Printing canceled."
-        );
-        throw new Error("Sale failed, canceling print.");
+        messageApi.error("Sale failed. Printing canceled.");
+        console.error(error);
+        throw new Error("Print canceled.");
       } finally {
         setLoading(false);
       }
     },
     onAfterPrint: () => {
-      // console.log("Printing finished!");
+      // Reset modal visibility and cart after printing.
       setIsModalVisible(false);
-      setCart([]);
+      setCart([]); // Clear cart items
     },
   });
+  
 
   return (
-    <div className="">
+    <div>
       {contextHolder}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 relative">
-        {/* Product List */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 p-2">
           {loading ? (
-            <div className="flex justify-center items-center my-4 h-60 bg-white">
+            <div className="flex justify-center items-center h-60 bg-white">
               <DotLoader />
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 relative top-10">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {products.map((product, index) => {
-                const finalPrice =
-                  Number(
-                    product.isDiscount
-                      ? product.unitPrice - product.discountAmount
-                      : product.unitPrice
-                  ) || 0;
-
                 const isOutOfStock = product.quantity === 0;
+                const finalPrice = product.isDiscount
+                  ? product.unitPrice - product.discountAmount
+                  : product.unitPrice;
 
                 return (
                   <div
                     key={index}
-                    className=""
-                    onClick={() => !isOutOfStock && handleProductClick(product)} // Only allow click if not out of stock
+                    onClick={() => !isOutOfStock && handleProductClick(product)}
                   >
                     <Card
                       hoverable
-                      style={{ width: "100%", height: 220 }}
-                      className={`p-1 relative ${
-                        isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
+                      className={`p-1 ${isOutOfStock ? "opacity-50" : ""}`}
                       cover={
                         <img
                           alt={product.title}
                           src={product.image || product_default}
-                          style={{
-                            width: "100%",
-                            height: 90,
-                            objectFit: "contain",
-                          }}
+                          style={{ height: 90, objectFit: "contain" }}
                         />
                       }
                     >
-                      <div>
-                        <h3 className="font-bold m-0 text-xs mb-2">
-                          {product.title}
-                        </h3>
-                        <p className="font-semibold text-xs mb-1">{`Price: ₦${product.unitPrice}`}</p>
-                        <p
-                          className={`font-medium text-xs ${
-                            isOutOfStock
-                              ? "text-red-500"
-                              : product.quantity < 10
-                              ? "text-orange-500"
-                              : "text-gray-800"
-                          }`}
-                        >
-                          Quantity: {product.quantity}
-                          {isOutOfStock ? (
-                            <span className="ml-2 text-xs italic">
-                              (Out of stock!)
-                            </span>
-                          ) : product.quantity < 10 ? (
-                            <span className="ml-2 text-xs italic">
-                              (Low stock!)
-                            </span>
-                          ) : null}
-                        </p>
-
-                        {product.discountAmount != 0 ? (
-                          <p className="absolute text-red-500 text-xs bg-red-100 p-2 top-1 right-1">{`-₦${product.discountAmount}`}</p>
-                        ) : (
-                          ""
-                        )}
-                      </div>
+                      <h3 className="font-bold text-xs">{product.title}</h3>
+                      <p className="text-xs">₦{product.unitPrice}</p>
+                      <p
+                        className={`text-xs ${
+                          isOutOfStock
+                            ? "text-red-500"
+                            : product.quantity < 10
+                            ? "text-orange-500"
+                            : ""
+                        }`}
+                      >
+                        Qty: {product.quantity}
+                      </p>
                     </Card>
                   </div>
                 );
@@ -261,7 +204,6 @@ const Store = () => {
           )}
         </div>
 
-        {/* Cart Sidebar */}
         <div className="lg:col-span-1 p-4 lg:fixed right-4 w-full lg:w-1/4 top-24">
           <h2 className="text-xl font-bold">Cart</h2>
           {cart.length === 0 ? (
@@ -269,52 +211,44 @@ const Store = () => {
           ) : (
             <div className="cart-container overflow-y-auto h-96">
               {cart.map((item, index) => {
-                const finalPrice =
-                  Number(
-                    item.isDiscount
-                      ? item.unitPrice - item.discountAmount
-                      : item.unitPrice
-                  ) || 0;
+                const finalPrice = item.isDiscount
+                  ? item.unitPrice - item.discountAmount
+                  : item.unitPrice;
 
                 return (
                   <div
                     key={index}
-                    className="p-2 border-b border-gray flex items-center relative justify-between"
+                    className="p-2 border-b flex justify-between items-center"
                   >
-                    <div className="flex">
+                    <div className="flex items-center">
                       <img
-                        alt={item.title}
                         src={item.image || product_default}
-                        style={{
-                          width: 40,
-                          height: 40,
-                          objectFit: "contain",
-                        }}
+                        alt={item.title}
+                        style={{ width: 40, height: 40 }}
                       />
-                      <div className="ml-4">
-                        <h3 className="font-semibold text-sm">{item.title}</h3>
-                        <p className="text-sm">{`₦ ${finalPrice}`}</p>
+                      <div className="ml-3">
+                        <h4 className="text-sm font-semibold">{item.title}</h4>
+                        <p className="text-sm">₦{finalPrice}</p>
                       </div>
                     </div>
                     <div className="flex items-center">
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className="text-white bg-red-800 cursor-pointer"
-                          onClick={() => handleMinusClick(index)}
-                        >
-                          <RiSubtractFill />
-                        </div>
-                        <div>{item.quantity}</div>
-                        <div
-                          className="text-white bg-blue-800 cursor-pointer"
-                          onClick={() => handlePlusClick(index)}
-                        >
-                          <IoAdd />
-                        </div>
+                      <div
+                        className="bg-red-800 text-white px-1 cursor-pointer"
+                        onClick={() => handleMinusClick(index)}
+                      >
+                        <RiSubtractFill />
+                      </div>
+                      <span className="px-2">{item.quantity}</span>
+                      <div
+                        className="bg-blue-800 text-white px-1 cursor-pointer"
+                        onClick={() => handlePlusClick(index)}
+                      >
+                        <IoAdd />
                       </div>
                       <Button
-                        type="danger"
-                        className="ml-4"
+                        danger
+                        size="small"
+                        className="ml-2"
                         onClick={() => handleRemoveClick(index)}
                       >
                         <IoCloseOutline />
@@ -323,23 +257,22 @@ const Store = () => {
                   </div>
                 );
               })}
-              <div className="flex justify-between font-bold mt-4">
+              <div className="flex justify-between mt-4 font-bold">
                 <span>Total:</span>
-                <span>{`₦ ${total}`}</span>
+                <span>₦{total}</span>
               </div>
               <Button
                 type="primary"
-                className="w-full mt-4 bg-blue-500 hover:bg-blue-600"
+                className="w-full mt-4 bg-blue-600"
                 onClick={logReceipt}
               >
-                Check out
+                Checkout
               </Button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Receipt Modal */}
       <Modal
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
@@ -350,14 +283,27 @@ const Store = () => {
           <Button
             key="print"
             type="primary"
-            className="bg-blue-700"
+            className="bg-blue-600"
             onClick={handlePrint}
+            loading={loading}
           >
-            {loading ? "Printing..." : "Print Receipt"}
+            Print Receipt
           </Button>,
         ]}
       >
-        <Receipt ref={receiptRef} cart={cart} total={total} />
+        {receiptLoading ? (
+          <div className="flex justify-center items-center h-60">
+            <DotLoader />
+          </div>
+        ) : (
+          <Receipt
+          ref={receiptRef}
+          cart={cart}
+          total={total}
+          receiptId={receiptId}
+          receiptNumber={receiptNumber}
+          />
+        )}
       </Modal>
     </div>
   );

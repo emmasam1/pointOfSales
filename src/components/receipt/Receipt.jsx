@@ -3,7 +3,7 @@ import { useAuthConfig } from "../../context/AppState";
 
 // Forward the ref to the component
 const Receipt = React.forwardRef((props, ref) => {
-  const { cart, total } = props;
+  const { cart, total, receiptNumber } = props;
   const { user } = useAuthConfig();
 
   const getFormattedTime = () => {
@@ -80,7 +80,7 @@ const Receipt = React.forwardRef((props, ref) => {
         </div>
         <div className="flex justify-between">
           <p className="receipt">Receipt No:</p>
-          <p className="receipt">2160015975</p>
+          <p className="receipt">{receiptNumber}</p>
         </div>
       </div>
       <div className="text-center">
