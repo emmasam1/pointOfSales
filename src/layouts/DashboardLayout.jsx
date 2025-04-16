@@ -33,6 +33,7 @@ const items = [
   getItem("Staffs", "/dashboard/staffs", <DesktopOutlined />),
   getItem("Categories", "/dashboard/categories", <DesktopOutlined />),
   getItem("Products", "/dashboard/products", <DesktopOutlined />),
+  getItem("Receipt", "/dashboard/receipt", <DesktopOutlined />),
 ];
 
 const DashboardLayout = () => {
@@ -47,8 +48,8 @@ const DashboardLayout = () => {
     case "/dashboard":
       title = "Dashboard";
       break;
-    case "/dashboard/profile":
-      title = "Profile";
+    case "/dashboard/receipt":
+      title = "Receipt";
       break;
     case "/dashboard/categories":
       title = "Categories";

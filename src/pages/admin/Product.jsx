@@ -58,94 +58,6 @@ const Product = () => {
     setProductBeingEdited(null);
   };
 
-  // const onFinish = async (values) => {
-  //   const productUrl = `${baseUrl}/add-product`;
-
-  //   const formData = new FormData();
-  //   formData.append("title", values.title);
-  //   formData.append("description", values.description);
-  //   if (imageFile) formData.append("image", imageFile);
-  //   formData.append("unitPrice", values.unitPrice);
-  //   formData.append("bulkPrice", values.bulkPrice);
-  //   formData.append("sizes", values.sizes || []);
-  //   formData.append("isTrending", values.isTrending || false);
-  //   formData.append("isDiscount", values.isDiscount || false);
-  //   formData.append("discountAmount", values.discountAmount || 0);
-  //   formData.append("quantity", values.quantity);
-  //   formData.append(
-  //     "manufacturingDate",
-  //     moment(values.manufacturingDate).format("YYYY-MM-DD")
-  //   );
-  //   formData.append(
-  //     "expiryDate",
-  //     moment(values.expiryDate).format("YYYY-MM-DD")
-  //   );
-  //   formData.append("category", values.category);
-
-  //   try {
-  //     setLoading(true);
-  //     const response = await axios.post(productUrl, formData, {
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-  //     messageApi.open({
-  //       type: "success",
-  //       content: "Product added successfully",
-  //     });
-  //     setProducts([...products, response.data.product]);
-  //     setFilteredProducts([...products, response.data.product]);
-  //     handleCancelProductModal();
-  //   } catch (error) {
-  //     const errorMessage =
-  //       error.response?.data?.message ||
-  //       "An error occurred while adding the product";
-  //     messageApi.open({ type: "error", content: errorMessage });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  // const onFinish = async (values) => {
-  //   const productUrl = `${baseUrl}/add-product`;
-
-  //   const formData = new FormData();
-  //   formData.append("title", values.title);
-  //   formData.append("description", values.description);
-  //   if (imageFile) formData.append("image", imageFile);
-  //   formData.append("unitPrice", values.unitPrice);
-  //   formData.append("bulkPrice", values.bulkPrice);
-  //   formData.append("sizes", values.sizes || []);
-  //   formData.append("isTrending", values.isTrending || false);
-  //   formData.append("isDiscount", values.isDiscount || false);
-  //   formData.append("discountAmount", values.discountAmount || 0);
-  //   formData.append("quantity", values.quantity);
-  //   formData.append(
-  //     "manufacturingDate",
-  //     values.manufacturingDate.format("YYYY-MM-DD")
-  //   );
-  //   formData.append("expiryDate", values.expiryDate.format("YYYY-MM-DD"));
-  //   formData.append("category", values.category);
-
-  //   try {
-  //     setLoading(true);
-  //     const response = await axios.post(productUrl, formData, {
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-  //     messageApi.open({
-  //       type: "success",
-  //       content: "Product added successfully",
-  //     });
-  //     setProducts([...products, response.data.product]);
-  //     setFilteredProducts([...products, response.data.product]);
-  //     handleCancelProductModal();
-  //   } catch (error) {
-  //     const errorMessage =
-  //       error.response?.data?.message ||
-  //       "An error occurred while adding the product";
-  //     messageApi.open({ type: "error", content: errorMessage });
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   const onFinish = async (values) => {
     const isEdit = isEditing && productBeingEdited?._id;
@@ -500,7 +412,7 @@ const Product = () => {
             position: ["bottomCenter"],
             className: "custom-pagination",
           }}
-          className="custom-table"
+          className="custom-table min-w-[600px]"
         />
       )}
 

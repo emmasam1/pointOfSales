@@ -11,6 +11,7 @@ import Categories from "./pages/admin/Categories";
 import StaffDashboardLayout from "./layouts/StaffDashboardLayout";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import Store from "./pages/staff/Store";
+import Receipt from "./pages/admin/Receipt";
 
 const App = () => {
   return (
@@ -25,6 +26,7 @@ const App = () => {
             <Route path="products" element={<Product />} />
             <Route path="staffs" element={<Staff />} />
             <Route path="categories" element={<Categories />} />
+            <Route path="receipt" element={<Receipt />} />
           </Route>
           <Route path="/staff-dashboard" element={<StaffDashboardLayout />}>
             <Route path="" element={<StaffDashboard />} />
