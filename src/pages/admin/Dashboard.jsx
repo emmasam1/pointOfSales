@@ -9,12 +9,13 @@ import {
 } from "recharts";
 import axios from "axios";
 import { useAuthConfig } from "../../context/AppState";
-import { message, DatePicker, Table, Select } from "antd";
+import { message, DatePicker, Table, Select, Spin } from "antd";
 import dayjs from "dayjs";
 import DotLoader from "react-spinners/DotLoader";
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // New state for silent background refresh
   const [expiredCount, setExpiredCount] = useState(0);
   const [salesTrends, setSalesTrends] = useState([]);
   const [dailySales, setDailySales] = useState(0);
@@ -32,8 +33,10 @@ const Dashboard = () => {
       minimumFractionDigits: 0,
     }).format(amount);
 
-  const getDashboardData = async () => {
-    setLoading(true);
+  const getDashboardData = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    else setRefreshing(true);
+
     try {
       const { data } = await axios.get(`${baseUrl}/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -46,7 +49,8 @@ const Dashboard = () => {
     } catch {
       messageApi.error("Failed to load dashboard data.");
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
+      else setRefreshing(false);
     }
   };
 
@@ -101,11 +105,11 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (token && baseUrl) {
-      getDashboardData();
+      getDashboardData(); // Initial load (with loader)
       fetchExpiredProducts();
 
       const interval = setInterval(() => {
-        getDashboardData();
+        getDashboardData(true); // Silent reload
         fetchExpiredProducts();
       }, 30000);
 
@@ -128,9 +132,15 @@ const Dashboard = () => {
     <div className="p-4">
       {contextHolder}
 
+      {/* Optional top-right mini refresh indicator */}
+      {refreshing && (
+        <div className="absolute top-4 right-6 z-10">
+          <Spin size="small" />
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        {/* Monthly Sales */}
         <div className="bg-emerald-200 rounded p-4">
           <div className="flex justify-between items-center mb-2">
             <div className="bg-emerald-500 p-3 rounded">💰</div>
@@ -156,7 +166,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Daily Sales */}
         <div className="bg-indigo-200 rounded p-4">
           <div className="flex justify-between items-center mb-2">
             <div className="bg-indigo-500 p-3 rounded">📅</div>
@@ -177,7 +186,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Expired */}
         <div className="flex bg-rose-200 p-4 rounded items-center">
           <div className="bg-rose-500 p-3 rounded">⚠️</div>
           <div className="ml-4">
@@ -186,7 +194,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Monthly Transactions */}
         <div className="flex bg-yellow-200 p-4 rounded items-center">
           <div className="bg-yellow-500 p-3 rounded">🧾</div>
           <div className="ml-4">
@@ -200,7 +207,6 @@ const Dashboard = () => {
 
       {/* Charts & Table */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Products */}
         <div className="bg-white rounded shadow p-4 overflow-x-auto">
           <h1 className="font-bold text-xl mb-3">Top Selling Products</h1>
           {loading ? (
@@ -220,7 +226,6 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Chart */}
         <div className="bg-white rounded shadow p-4">
           <h2 className="text-lg font-bold mb-3">Sales Trend</h2>
           {loading ? (
