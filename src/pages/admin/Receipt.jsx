@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Form, Input, Button, message, Modal } from "antd";
 import axios from "axios";
 import { useAuthConfig } from "../../context/AppState";
@@ -11,172 +11,109 @@ const ReceiptSearch = () => {
   const [form] = Form.useForm();
   const [receiptData, setReceiptData] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [products, setProducts] = useState([]);
 
-  // const onFinish = async ({ receiptId }) => {
-  //   setLoading(true);
-  //   try {
-  //     const response = await axios.get(
-  //       `${baseUrl}/receipts/search?receiptCode=${receiptId}`,
-  //       {
-  //         headers: { Authorization: `Bearer ${token}` },
-  //       }
-  //     );
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!token) {
+        console.warn("No token found. Skipping user fetch.");
+        return;
+      }
 
-  //     if (response.status === 200 && response.data.receipt) {
-  //       const receipt = response.data.receipt;
-  //       console.log("🧾 Raw receipt:", receipt);
+      try {
+        const response = await axios.get(`${baseUrl}/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-  //       // 1️⃣ Fetch product details
-  //       const productIds = receipt.products.map(p => p.product);
-  //       console.log("📦 Product IDs:", productIds);
+        console.log("Fetched users:", response.data);
+        setUsers(response.data.users); // assuming the API response has a `users` array
+      } catch (err) {
+        console.error("Failed to fetch users:", err);
 
-  //       const productDetailsRes = await axios.get(
-  //         `${baseUrl}/products?ids=${productIds.join(",")}`,
-  //         {
-  //           headers: { Authorization: `Bearer ${token}` },
-  //         }
-  //       );
+        // Optional: You can handle 401 errors specifically
+        if (err.response?.status === 401) {
+          messageApi.error("Session expired. Please log in again.");
+          // optionally trigger logout or redirect
+        }
+      }
+    };
 
-  //       const productDetails = productDetailsRes.data.products;
-  //       console.log("📦 Full product details:", productDetails);
+    fetchUsers();
+  }, [token]); // make sure it re-runs if token changes
 
-  //       const productMap = {};
-  //       productDetails.forEach(product => {
-  //         productMap[product._id] = product;
-  //       });
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!token) {
+        console.warn("No token found. Skipping product fetch.");
+        return;
+      }
 
-  //       const productsWithDetails = receipt.products.map(p => ({
-  //         ...p,
-  //         product: productMap[p.product] || p.product,
-  //       }));
+      try {
+        const response = await axios.get(`${baseUrl}/products`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-  //       receipt.products = productsWithDetails;
+        console.log("Fetched products:", response.data);
+        setProducts(response.data.products); // assuming `products` is the key
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      }
+    };
 
-  //       // 2️⃣ Fetch cashier details
-  //       let cashierDetails = null;
-  //       if (receipt.cashier) {
-  //         const cashierRes = await axios.get(
-  //           `${baseUrl}/users/${receipt.cashier}`,
-  //           {
-  //             headers: { Authorization: `Bearer ${token}` },
-  //           }
-  //         );
-  //         cashierDetails = cashierRes.data.user;
-  //         console.log("👤 Cashier details:", cashierDetails);
-  //       }
-
-  //       receipt.cashier = cashierDetails || receipt.cashier;
-
-  //       console.log("✅ Final enriched receipt:", receipt);
-
-  //       setReceiptData(receipt);
-  //       messageApi.success("Receipt loaded successfully.");
-  //       setIsModalVisible(true);
-  //     } else {
-  //       messageApi.error("Receipt not found.");
-  //     }
-  //   } catch (error) {
-  //     console.error("❌ Error fetching receipt:", error);
-  //     messageApi.error("Error searching receipt. Please try again.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+    fetchProducts();
+  }, [token]);
 
   const onFinish = async ({ receiptId }) => {
     setLoading(true);
+
     try {
-      // 1️⃣ Fetch receipt by receiptId
+      // Step 1: Fetch the receipt by code
       const response = await axios.get(
         `${baseUrl}/receipts/search?receiptCode=${receiptId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-  
-      if (response.status === 200 && response.data.receipt) {
-        const receipt = response.data.receipt;
-        console.log("🧾 Raw receipt:", receipt);
-  
-        // 2️⃣ Fetch product details
-        const productIds = receipt.products.map((p) => p.product);
-        console.log("📦 Product IDs:", productIds);
-  
-        const productDetailsRes = await axios.get(
-          `${baseUrl}/products?ids=${productIds.join(",")}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-  
-        const productDetails = productDetailsRes.data.products;
-        console.log("📦 Full product details:", productDetails);
-  
-        const productMap = {};
-        productDetails.forEach((product) => {
-          productMap[product._id] = product;
-        });
-  
-        const productsWithDetails = receipt.products.map((p) => ({
-          ...p,
-          product: productMap[p.product] || p.product,
-        }));
-  
-        receipt.products = productsWithDetails;
-  
-        // 3️⃣ Fetch cashier details
-        let cashierDetails = null;
-        if (receipt.cashier) {
-          const cashierRes = await axios.get(
-            `${baseUrl}/users/${receipt.cashier}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-          cashierDetails = cashierRes.data.user;
-          console.log("👤 Cashier details:", cashierDetails);
-          receipt.cashier = cashierDetails;
-        }
-  
-        // 4️⃣ Fetch store (shop) details from cashier.parentShop
-        let storeDetails = null;
-        const storeId = cashierDetails?.parentShop;
-        if (storeId) {
-          try {
-            const storeRes = await axios.get(
-              `${baseUrl}/shops/${storeId}`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
-            storeDetails = storeRes.data.shop;
-            console.log("🏬 Store details:", storeDetails);
-          } catch (storeError) {
-            console.error("⚠️ Failed to fetch store details:", storeError);
-          }
-        } else {
-          console.warn("⚠️ No parentShop ID found on cashier.");
-        }
-  
-        // Attach store to receipt
-        receipt.store = storeDetails;
-  
-        // 5️⃣ Done — Set data
-        console.log("✅ Final enriched receipt:", receipt);
-        setReceiptData(receipt);
-        messageApi.success("Receipt loaded successfully.");
-        setIsModalVisible(true);
-      } else {
-        messageApi.error("Receipt not found.");
-      }
+
+      const receipt = response.data.receipt;
+      console.log(receipt)
+
+      // Step 2: Enrich with cashier details from cached users
+      const matchedCashier = users.find((user) => user._id === receipt.cashier);
+
+      // Step 3: Enrich product items with full product details
+      const enrichedProducts = receipt.products.map((item) => {
+        const matchedProduct = products.find((p) => p._id === item.product);
+
+        console.log("🛒 Product Title:", matchedProduct?.title); // Log product title
+
+        return {
+          ...item,
+          productDetails: matchedProduct || null, // Add product info here
+        };
+      });
+
+      // Step 4: Final enriched receipt
+      const enrichedReceipt = {
+        ...receipt,
+        cashierDetails: matchedCashier || null,
+        enrichedProducts,
+      };
+
+      console.log("Final enriched receipt:", enrichedProducts);
+
+      setReceiptData(enrichedReceipt);
+      messageApi.success("Receipt loaded successfully.");
+      setIsModalVisible(true);
     } catch (error) {
-      console.error("❌ Error fetching receipt:", error);
+      console.error("Error fetching receipt:", error);
       messageApi.error("Error searching receipt. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-  
+
   const handleKeyPress = (e) => {
     if (!/^\d$/.test(e.key)) e.preventDefault();
   };
@@ -208,37 +145,44 @@ const ReceiptSearch = () => {
   };
 
   return (
-    <div className="p-2 flex justify-end">
+    <div className="p-2 ">
       {contextHolder}
-      <Form
-        form={form}
-        onFinish={onFinish}
-        layout="inline"
-        className="w-full justify-end"
-      >
-        <Form.Item
-          name="receiptId"
-          rules={[
-            { required: true, message: "Please enter a receipt ID" },
-            { pattern: /^\d+$/, message: "Receipt ID must be numeric" },
-          ]}
+      <div className="flex justify-end">
+        <Form
+          form={form}
+          onFinish={onFinish}
+          layout="inline"
+          className="w-full justify-end"
         >
-          <Input
-            placeholder="Enter receipt ID"
-            maxLength={10}
-            inputMode="numeric"
-            onKeyPress={handleKeyPress}
-            onPaste={handlePaste}
-            style={{ width: 250 }}
-          />
-        </Form.Item>
-        <Form.Item>
-          <Button type="primary" htmlType="submit">
-            {loading ? "Searching..." : "Search Receipt"}
-          </Button>
-        </Form.Item>
-      </Form>
+          <Form.Item
+            name="receiptId"
+            rules={[
+              { required: true, message: "Please enter a receipt ID" },
+              { pattern: /^\d+$/, message: "Receipt ID must be numeric" },
+            ]}
+          >
+            <Input
+              placeholder="Enter receipt ID"
+              maxLength={10}
+              inputMode="numeric"
+              onKeyPress={handleKeyPress}
+              onPaste={handlePaste}
+              style={{ width: 250 }}
+            />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit">
+              {loading ? "Searching..." : "Search Receipt"}
+            </Button>
+          </Form.Item>
+        </Form>
+      </div>
 
+      <div>
+        <p className="receipt">
+          Address: Lorem ipsum, dolor sit amet consectetur adipisicing elit
+        </p>
+      </div>
       <Modal
         title=""
         open={isModalVisible}
@@ -250,28 +194,25 @@ const ReceiptSearch = () => {
         ) : (
           <div className="p-4" style={{ width: "90mm", margin: "auto" }}>
             <h2 className="text-xl font-bold mb-2">
-              {receiptData.shop?.name || "Shop"}
+              {receiptData.cashierDetails?.assignedShop?.name || "Shop"}
             </h2>
-            
-            
+
             <div className="flex justify-between items-center">
-            <p className="receipt">{formatTime(receiptData.soldAt)}</p>
-            <p className="receipt">{formatDate(receiptData.soldAt)}</p>
+              <p className="receipt">{formatDate(receiptData.soldAt)}</p>
+              <p className="receipt">{formatTime(receiptData.soldAt)}</p>
             </div>
             {/* Cashier Info */}
             <div className="flex justify-between items-center">
               <p className="receipt">Cashier:</p>
               <p className="receipt uppercase font-bold">
-                {typeof receiptData.cashier === "object"
-                  ? `${receiptData.cashier.firstName} ${receiptData.cashier.lastName}`
-                  : receiptData.cashier}
+                {receiptData.cashierDetails?.firstName}{" "}
+                {receiptData.cashierDetails?.lastName}
               </p>
             </div>
             <div className="flex justify-between items-center">
               <p>Receipt No:</p>
-            <p className="font-semibold"> {receiptData.receiptCode}</p>
+              <p className="font-semibold"> {receiptData.receiptCode}</p>
             </div>
-         
 
             <div className="text-center mt-2 mb-2">{"*".repeat(50)}</div>
 
@@ -282,13 +223,10 @@ const ReceiptSearch = () => {
               <span className="w-4/12 text-right">Price</span>
             </div>
 
-            {receiptData.products?.map((item, index) => (
+            {receiptData.enrichedProducts?.map((item, index) => (
               <div key={item._id} className="flex justify-between py-1">
                 <span className="w-3/9">
-                  {index + 1}.{" "}
-                  {typeof item.product === "object"
-                    ? item.product.title
-                    : item.product}
+                  {item.productDetails?.title || "N/A"}
                 </span>
                 <span className="w-2/12 text-center">{item.quantity}</span>
                 <span className="w-3/12 text-center">
@@ -305,7 +243,7 @@ const ReceiptSearch = () => {
             <div className="text-center mt-2 mb-2">{"*".repeat(50)}</div>
 
             <div className="flex justify-between font-bold">
-              <span>Total Amount::</span>
+              <span>Total Amount:</span>
               <span>{formatCurrency(receiptData.totalAmount)}</span>
             </div>
             <div className="flex justify-between">
