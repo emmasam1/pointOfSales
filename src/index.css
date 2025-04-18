@@ -15,6 +15,23 @@
   width: 100%;
   text-transform: uppercase;  /* Optional: make the text uppercase */
 }
+.copy_watermark {
+  position: absolute;
+  /* top: 50%;
+  left: 50%; */
+  top: 150px;
+  left: 120px;
+  transform: translate(-50%, -50%) rotate(-60deg);
+  font-size: 5rem;  /* Adjust size as needed */
+  color: rgba(0, 0, 0, 0.1);  /* Light grey color with opacity */
+  font-weight: bold;
+  pointer-events: none;  /* Ensures it doesn't block interactions */
+  z-index: -1;  /* Ensures it's behind content */
+  text-align: center;
+  user-select: none;
+  width: 100%;
+  text-transform: uppercase;  /* Optional: make the text uppercase */
+}
 .ant-card-body{
   padding: 10px !important;
   margin-top: 5px;
