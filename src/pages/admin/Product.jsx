@@ -29,7 +29,7 @@ import {
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import moment from "moment";
 import dayjs from "dayjs";
-import isSameOrBefore from "dayjs/plugin/isSameOrBefore"; // only if needed
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore"; 
 
 dayjs.extend(isSameOrBefore);
 
@@ -59,12 +59,61 @@ const Product = () => {
   };
 
 
+  // const onFinish = async (values) => {
+  //   const isEdit = isEditing && productBeingEdited?._id;
+  //   const productUrl = isEdit
+  //     ? `${baseUrl}/${productBeingEdited._id}`
+  //     : `${baseUrl}/add-product`;
+  
+  //   const formData = new FormData();
+  //   formData.append("title", values.title);
+  //   formData.append("description", values.description);
+  //   if (imageFile) formData.append("image", imageFile);
+  //   formData.append("unitPrice", values.unitPrice);
+  //   formData.append("bulkPrice", values.bulkPrice);
+  //   formData.append("sizes", values.sizes || []);
+  //   formData.append("isTrending", values.isTrending || false);
+  //   formData.append("isDiscount", values.isDiscount || false);
+  //   formData.append("discountAmount", values.discountAmount || 0);
+  //   formData.append("quantity", values.quantity);
+  //   formData.append("manufacturingDate", values.manufacturingDate.format("YYYY-MM-DD"));
+  //   formData.append("expiryDate", values.expiryDate.format("YYYY-MM-DD"));
+  //   formData.append("category", values.category);
+  
+  //   try {
+  //     setLoading(true);
+  //     const method = isEdit ? "patch" : "post";
+  
+  //     const response = await axios[method](productUrl, formData, {
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //     });
+  
+  //     messageApi.open({
+  //       type: "success",
+  //       content: `Product ${isEdit ? "updated" : "added"} successfully`,
+  //     });
+  
+  //     await fetchProducts(); // refresh list
+  //     handleCancelProductModal();
+  //   } catch (error) {
+  //     const errorMessage =
+  //       error.response?.data?.message ||
+  //       `An error occurred while ${isEdit ? "updating" : "adding"} the product`;
+  //     messageApi.open({ type: "error", content: errorMessage });
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  
+
   const onFinish = async (values) => {
     const isEdit = isEditing && productBeingEdited?._id;
     const productUrl = isEdit
       ? `${baseUrl}/${productBeingEdited._id}`
       : `${baseUrl}/add-product`;
-  
+
     const formData = new FormData();
     formData.append("title", values.title);
     formData.append("description", values.description);
@@ -79,22 +128,22 @@ const Product = () => {
     formData.append("manufacturingDate", values.manufacturingDate.format("YYYY-MM-DD"));
     formData.append("expiryDate", values.expiryDate.format("YYYY-MM-DD"));
     formData.append("category", values.category);
-  
+
     try {
       setLoading(true);
       const method = isEdit ? "patch" : "post";
-  
+
       const response = await axios[method](productUrl, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-  
+
       messageApi.open({
         type: "success",
         content: `Product ${isEdit ? "updated" : "added"} successfully`,
       });
-  
+
       await fetchProducts(); // refresh list
       handleCancelProductModal();
     } catch (error) {
@@ -106,7 +155,6 @@ const Product = () => {
       setLoading(false);
     }
   };
-  
 
   const getCategories = async () => {
     try {
@@ -215,8 +263,8 @@ const Product = () => {
                 key: "view",
                 label: (
                   <NavLink
-                    to={`/product/${_record.key}`}
-                    state={{ record: _record }}
+                    // to={`/product/${_record.key}`}
+                    // state={{ record: _record }}
                   >
                     View Product
                   </NavLink>
@@ -226,22 +274,26 @@ const Product = () => {
                 key: "edit",
                 label: (
                   <span
-                    onClick={() => {
-                      const selectedProduct = products.find((p) => p._id === _record.key);
-                      if (selectedProduct) {
-                        setIsEditing(true);
-                        setIsOpen(true);
-                        setProductBeingEdited(selectedProduct);
-                        form.setFieldsValue({
-                          ...selectedProduct,
-                          manufacturingDate: dayjs(selectedProduct.manufacturingDate),
-                          expiryDate: dayjs(selectedProduct.expiryDate),
-                          category: selectedProduct.category?._id || selectedProduct.category,
-                        });
-                        setImagePreview(selectedProduct.image || null);
-                      }
-                    }}
-                  >
+                  onClick={() => {
+                    const selectedProduct = products.find((p) => p._id === _record.key);
+                    if (selectedProduct) {
+                      setIsEditing(true);
+                      setIsOpen(true);
+                      setProductBeingEdited(selectedProduct);
+                      form.setFieldsValue({
+                        ...selectedProduct,
+                        manufacturingDate: dayjs(selectedProduct.manufacturingDate),
+                        expiryDate: dayjs(selectedProduct.expiryDate),
+                        category: selectedProduct.category?._id || selectedProduct.category,
+                        sizes: selectedProduct.sizes || [],
+                        isTrending: selectedProduct.isTrending || false,
+                        isDiscount: selectedProduct.isDiscount || false,
+                        discountAmount: selectedProduct.discountAmount || 0,
+                      });
+                      setImagePreview(selectedProduct.image || null);
+                    }
+                  }}
+                >
                     Edit
                   </span>
                 ),
@@ -412,7 +464,8 @@ const Product = () => {
             position: ["bottomCenter"],
             className: "custom-pagination",
           }}
-          className="custom-table min-w-[600px]"
+          className="custom-table"
+          scroll={{ x: "max-content" }}
         />
       )}
 

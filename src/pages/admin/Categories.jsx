@@ -182,7 +182,8 @@ const Categories = () => {
             rowKey="_id"
             size="small"
             pagination={{ pageSize: 7, position: ["bottomCenter"] }}
-            className="custom-table min-w-[600px]"
+            className="custom-table"
+            scroll={{ x: "max-content" }}
           />
         </div>
       )}
