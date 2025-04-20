@@ -216,14 +216,14 @@ const Store = () => {
                           className="bg-red-600 text-white px-1 cursor-pointer"
                           onClick={() => handleMinusClick(index)}
                         >
-                          <RiSubtractFill />
+                          <RiSubtractFill size={20}/>
                         </div>
                         <span className="px-2">{item.quantity}</span>
                         <div
                           className="bg-blue-600 text-white px-1 cursor-pointer"
                           onClick={() => handlePlusClick(index)}
                         >
-                          <IoAdd />
+                          <IoAdd size={20}/>
                         </div>
                         <Button
                           size="small"

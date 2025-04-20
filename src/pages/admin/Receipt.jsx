@@ -96,7 +96,7 @@ const ReceiptSearch = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const receipt = response.data;
-      console.log(receipt)
+      console.log(receipt);
       // setReceiptData(receipt);
     } catch (error) {
       console.error("Error fetching receipt:", error);
@@ -104,10 +104,10 @@ const ReceiptSearch = () => {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    if (token) {  
+    if (token) {
       getAllReceipt();
     }
   }, [token]);
@@ -195,7 +195,7 @@ const ReceiptSearch = () => {
 
             <div className="flex justify-between">
               <p>Receipt No:</p>
-              <p>{receiptData.receiptCode}</p>
+              <p className="font-semibold">{receiptData.receiptCode}</p>
             </div>
 
             <div className="text-center">

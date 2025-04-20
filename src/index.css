@@ -6,7 +6,7 @@
   left: 50%;
   transform: translate(-50%, -50%) rotate(-60deg);
   font-size: 5rem;  /* Adjust size as needed */
-  color: rgba(0, 0, 0, 0.1);  /* Light grey color with opacity */
+  color: rgba(0, 0, 0, 0.57);  /* Light grey color with opacity */
   font-weight: bold;
   pointer-events: none;  /* Ensures it doesn't block interactions */
   z-index: -1;  /* Ensures it's behind content */
@@ -23,7 +23,7 @@
   left: 120px;
   transform: translate(-50%, -50%) rotate(-60deg);
   font-size: 5rem;  /* Adjust size as needed */
-  color: rgba(0, 0, 0, 0.1);  /* Light grey color with opacity */
+  color: rgba(0, 0, 0, 0.57);   /* Light grey color with opacity */
   font-weight: bold;
   pointer-events: none;  /* Ensures it doesn't block interactions */
   z-index: -1;  /* Ensures it's behind content */
@@ -35,6 +35,9 @@
 .ant-card-body{
   padding: 10px !important;
   margin-top: 5px;
+}
+.receipt{
+  font-size: 12px;
 }
 
 /* :root {

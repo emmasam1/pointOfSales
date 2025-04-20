@@ -88,10 +88,10 @@ const Receipt = React.forwardRef((props, ref) => {
       </div>
       <div className="mb-4">
         <div className="flex justify-between font-bold">
-          <h2 className="receipt w-3/9 text-left">Description</h2>
-          <h2 className="receipt w-2/12 text-center">Qty</h2>
-          <h2 className="receipt w-3/12 text-center">Unit Price</h2>
-          <h2 className="receipt w-4/12 text-right">Price</h2>
+          <h2 className="text-xs w-3/9 text-left">Description</h2>
+          <h2 className="text-xs w-2/12 text-center">Qty</h2>
+          <h2 className="text-xs w-3/12 text-center">Unit Price</h2>
+          <h2 className="text-xs w-4/12 text-right">Price</h2>
         </div>
         <div className="relative">
           <h2 className="watermark">{user.assignedShop.name}</h2>
