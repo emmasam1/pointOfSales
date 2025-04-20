@@ -309,6 +309,7 @@ const Staff = () => {
             className: "custom-pagination",
           }}
           className="custom-table"
+          scroll={{ x: "max-content" }}
         />
       )}
 
