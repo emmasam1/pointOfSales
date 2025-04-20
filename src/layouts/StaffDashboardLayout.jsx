@@ -78,7 +78,7 @@ const StaffDashboardLayout = () => {
         enrichedProducts,
       };
 
-      console.log(enrichedReceipt);
+      // console.log(enrichedReceipt);
       setReceiptData(enrichedReceipt);
       setReceiptOpen(false);
       form.resetFields();
@@ -183,7 +183,7 @@ const StaffDashboardLayout = () => {
         await new Promise((res) => setTimeout(res, 200));
         return true;
       } catch (error) {
-        console.log(error.response.data.message )
+        // console.log(error.response.data.message )
         messageApi.error(error.response.data.message || "Re-print failed. Printing canceled.");
         throw new Error("Print canceled.");
       } finally {

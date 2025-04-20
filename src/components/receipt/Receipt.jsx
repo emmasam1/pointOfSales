@@ -3,8 +3,9 @@ import { useAuthConfig } from "../../context/AppState";
 
 // Forward the ref to the component
 const Receipt = React.forwardRef((props, ref) => {
-  const { cart, total, receiptNumber } = props;
+  const { cart, total, receiptNumber, receiptCount } = props;
   const { user } = useAuthConfig();
+
 
   const getFormattedTime = () => {
     const now = new Date();
@@ -95,6 +96,10 @@ const Receipt = React.forwardRef((props, ref) => {
         </div>
         <div className="relative">
           <h2 className="watermark">{user.assignedShop.name}</h2>
+          {receiptCount > 1 ? (
+              <h2 className="copy_watermark">copy</h2>
+            ) : null}
+
           {cart.map((item, index) => (
             <div key={index} className="flex justify-between py-2">
               <div className="flex w-3/9">

@@ -20,6 +20,7 @@ const Store = () => {
   const [messageApi, contextHolder] = message.useMessage();
   const { baseUrl, token } = useAuthConfig();
   const receiptRef = useRef();
+  const [receiptCount, setReceiptCount] = useState(0);
 
   const fetchProducts = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -86,6 +87,8 @@ const Store = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      const count = data.receipt.printCount;
+      setReceiptCount(count);
 
       setReceiptId(data.receipt._id);
       setReceiptNumber(data.receipt.receiptCode);
@@ -284,6 +287,7 @@ const Store = () => {
             total={total}
             receiptId={receiptId}
             receiptNumber={receiptNumber}
+            receiptCount={receiptCount}
           />
         )}
       </Modal>
