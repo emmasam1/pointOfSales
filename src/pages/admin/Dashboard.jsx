@@ -3,7 +3,8 @@ import {
   PieChart,
   Pie,
   Sector,
-  LineChart, Line,
+  LineChart,
+  Line,
   Cell,
   BarChart,
   Bar,
@@ -14,7 +15,7 @@ import {
 } from "recharts";
 import axios from "axios";
 import { useAuthConfig } from "../../context/AppState";
-import { message, DatePicker, Table, Select, Spin } from "antd";
+import { message, DatePicker, Table, Select, Spin, Button } from "antd";
 import dayjs from "dayjs";
 import DotLoader from "react-spinners/DotLoader";
 
@@ -42,7 +43,8 @@ const Dashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(dayjs().month() + 1);
   const [topProducts, setTopProducts] = useState([]);
   const [messageApi, contextHolder] = message.useMessage();
-  const [transaction, setTransaction] = useState(0)
+  const [transaction, setTransaction] = useState(0);
+  const [viewChart, setViewChart] = useState(false);
 
   const { baseUrl, token } = useAuthConfig();
 
@@ -63,7 +65,7 @@ const Dashboard = () => {
       });
 
       // console.log(dashboardRes.data?.monthlySummary?.totalTransactions);
-      setTransaction(dashboardRes.data?.monthlySummary?.totalTransactions)
+      setTransaction(dashboardRes.data?.monthlySummary?.totalTransactions);
       const { salesTrends, cashierBreakdown, topProducts } = dashboardRes.data;
 
       const usersRes = await axios.get(`${baseUrl}/users`, {
@@ -208,6 +210,28 @@ const Dashboard = () => {
     },
   ];
 
+  const CashierChart = ({ data }) => {
+    const formattedData = data.map((item) => ({
+      name: item.cashier?.name || "Unknown",
+      sales: item.totalSales,
+    }));
+
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={formattedData}>
+          <XAxis
+            data={cashierBreakdown}
+            dataKey="totalSales"
+            nameKey="cashier.firstName"
+          />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="sales" fill="#34d399" />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  };
+
   return (
     <div className="p-4">
       {contextHolder}
@@ -290,9 +314,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-4">
               <h2 className="font-semibold">Monthly Transactions</h2>
-              <h2 className="font-bold text-2xl">
-                {transaction}
-              </h2>
+              <h2 className="font-bold text-2xl">{transaction}</h2>
             </div>
           </div>
         </div>
@@ -347,11 +369,22 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-5">
         <div className="bg-white rounded shadow p-4 overflow-x-auto">
-          <h2 className="text-lg font-bold mb-3">Cashier Breakdown</h2>
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-lg font-bold">Cashier Breakdown</h2>
+            <Button
+              className="!bg-gradient-to-r from-emerald-400 to-emerald-600 !text-white !font-bold"
+              onClick={() => setViewChart(!viewChart)}
+            >
+              {viewChart ? "View in table" : "View in chart"}
+            </Button>
+          </div>
+
           {loading ? (
             <div className="flex justify-center items-center h-60">
               <DotLoader />
             </div>
+          ) : viewChart ? (
+            <CashierChart data={cashierBreakdown} />
           ) : (
             <Table
               size="middle"
