@@ -3,6 +3,7 @@ import {
   PieChart,
   Pie,
   Sector,
+  LineChart, Line,
   Cell,
   BarChart,
   Bar,
@@ -82,7 +83,7 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log(dashboardRes.data)
+      console.log(dashboardRes.data);
 
       const { salesTrends, cashierBreakdown, topProducts } = dashboardRes.data;
 
@@ -239,19 +240,21 @@ const Dashboard = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <div className="bg-emerald-200 rounded p-4">
+        <div className="bg-gradient-to-r from-emerald-400 to-emerald-600 text-white rounded-xl shadow-lg p-4">
           <div className="flex justify-between items-center mb-2">
-            <div className="bg-emerald-500 p-3 rounded">💰</div>
-            <div>
-              <h2 className="font-bold">Monthly Sales</h2>
-              <h2 className="font-bold text-xl">
+            <div className="bg-white text-emerald-600 p-3 rounded-full text-xl">
+              💰
+            </div>
+            <div className="text-right">
+              <h2 className="font-semibold">Monthly Sales</h2>
+              <h2 className="font-bold text-2xl">
                 {formatCurrency(computedMonthlySales.totalSales)}
               </h2>
             </div>
           </div>
           <div className="flex justify-end">
             <Select
-              className="w-32"
+              className="w-28 text-black"
               value={selectedMonth}
               onChange={setSelectedMonth}
             >
@@ -264,14 +267,16 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="bg-indigo-200 rounded p-4">
+        <div className="bg-gradient-to-r from-indigo-400 to-indigo-600 text-white rounded-xl shadow-lg p-4">
           <div className="flex justify-between items-center mb-2">
-            <div className="bg-indigo-500 p-3 rounded">📅</div>
-            <div>
-              <h2 className="font-bold">
+            <div className="bg-white text-indigo-600 p-3 rounded-full text-xl">
+              📅
+            </div>
+            <div className="text-right">
+              <h2 className="font-semibold">
                 Sales on {selectedDate?.format("YYYY-MM-DD")}
               </h2>
-              <h2 className="font-bold text-xl">
+              <h2 className="font-bold text-2xl">
                 {formatCurrency(dailySales)}
               </h2>
             </div>
@@ -281,26 +286,33 @@ const Dashboard = () => {
               format="YYYY-MM-DD"
               value={selectedDate}
               onChange={handleDateChange}
-              allowClear={false}
             />
           </div>
         </div>
 
-        <div className="flex bg-rose-200 p-4 rounded items-center">
-          <div className="bg-rose-500 p-3 rounded">⚠️</div>
-          <div className="ml-4">
-            <h2 className="font-bold">Expired</h2>
-            <h2 className="font-bold text-xl">{expiredCount}</h2>
+        <div className="bg-gradient-to-r from-rose-400 to-rose-600 text-white rounded-xl shadow-lg p-4">
+          <div className="flex items-center">
+            <div className="bg-white text-rose-600 p-3 rounded-full text-xl">
+              ⚠️
+            </div>
+            <div className="ml-4">
+              <h2 className="font-semibold">Expired</h2>
+              <h2 className="font-bold text-2xl">{expiredCount}</h2>
+            </div>
           </div>
         </div>
 
-        <div className="flex bg-yellow-200 p-4 rounded items-center">
-          <div className="bg-yellow-500 p-3 rounded">🧾</div>
-          <div className="ml-4">
-            <h2 className="font-bold">Monthly Transactions</h2>
-            <h2 className="font-bold text-xl">
-              {computedMonthlySales.totalTransactions}
-            </h2>
+        <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-xl shadow-lg p-4">
+          <div className="flex items-center">
+            <div className="bg-white text-yellow-600 p-3 rounded-full text-xl">
+              🧾
+            </div>
+            <div className="ml-4">
+              <h2 className="font-semibold">Monthly Transactions</h2>
+              <h2 className="font-bold text-2xl">
+                {computedMonthlySales.totalTransactions}
+              </h2>
+            </div>
           </div>
         </div>
       </div>
@@ -334,13 +346,18 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="w-full h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={filteredMonthSales}>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={filteredMonthSales}>
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="totalSales" fill="#8884d8" />
-                </BarChart>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#f0f0f0",
+                      borderColor: "#ccc",
+                    }}
+                  />
+                  <Line dataKey="totalSales" fill="#6366f1" />
+                </LineChart>
               </ResponsiveContainer>
             </div>
           )}
@@ -356,12 +373,11 @@ const Dashboard = () => {
             </div>
           ) : (
             <Table
-              size="small"
+              size="middle"
               columns={cashierColumns}
               dataSource={cashierBreakdown}
-              rowKey="_id"
+              rowKey={(record) => record.cashier?._id || record.cashierId}
               pagination={{ pageSize: 5, position: ["bottomCenter"] }}
-              scroll={{ x: true }}
             />
           )}
         </div>
@@ -378,10 +394,10 @@ const Dashboard = () => {
                 <Pie
                   data={cashierBreakdown}
                   dataKey="totalSales"
-                  nameKey="cashier.fullName"
+                  nameKey="cashier.firstName"
                   cx="50%"
                   cy="50%"
-                  outerRadius={80}
+                  outerRadius={100}
                   fill="#8884d8"
                   label
                 >
