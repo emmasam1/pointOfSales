@@ -42,6 +42,7 @@ const Dashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(dayjs().month() + 1);
   const [topProducts, setTopProducts] = useState([]);
   const [messageApi, contextHolder] = message.useMessage();
+  const [transaction, setTransaction] = useState(0)
 
   const { baseUrl, token } = useAuthConfig();
 
@@ -52,28 +53,6 @@ const Dashboard = () => {
       minimumFractionDigits: 0,
     }).format(amount);
 
-  // const getDashboardData = async (isSilent = false) => {
-  //   if (!isSilent) setLoading(true);
-  //   else setRefreshing(true);
-
-  //   try {
-  //     const { data } = await axios.get(`${baseUrl}/dashboard`, {
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     });
-  //     setSalesTrends(data?.salesTrends || []);
-  //     setCashierBreakdown(data?.cashierBreakdown || []);
-  //     console.log(data);
-  //     setTopProducts(
-  //       (data?.topProducts || []).sort((a, b) => b.totalSold - a.totalSold)
-  //     );
-  //   } catch {
-  //     messageApi.error("Failed to load dashboard data.");
-  //   } finally {
-  //     if (!isSilent) setLoading(false);
-  //     else setRefreshing(false);
-  //   }
-  // };
-
   const getDashboardData = async (isSilent = false) => {
     if (!isSilent) setLoading(true);
     else setRefreshing(true);
@@ -83,8 +62,8 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log(dashboardRes.data);
-
+      // console.log(dashboardRes.data?.monthlySummary?.totalTransactions);
+      setTransaction(dashboardRes.data?.monthlySummary?.totalTransactions)
       const { salesTrends, cashierBreakdown, topProducts } = dashboardRes.data;
 
       const usersRes = await axios.get(`${baseUrl}/users`, {
@@ -101,6 +80,8 @@ const Dashboard = () => {
           cashier: cashier || { fullName: "Unknown", _id: entry.cashierId },
         };
       });
+
+      // console.log(enrichedCashierBreakdown)
 
       setSalesTrends(salesTrends || []);
       setCashierBreakdown(enrichedCashierBreakdown);
@@ -310,7 +291,7 @@ const Dashboard = () => {
             <div className="ml-4">
               <h2 className="font-semibold">Monthly Transactions</h2>
               <h2 className="font-bold text-2xl">
-                {computedMonthlySales.totalTransactions}
+                {transaction}
               </h2>
             </div>
           </div>
