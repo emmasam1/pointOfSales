@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
 import {
+  PieChart,
+  Pie,
+  Sector,
+  Cell,
   BarChart,
   Bar,
   XAxis,
@@ -13,11 +17,25 @@ import { message, DatePicker, Table, Select, Spin } from "antd";
 import dayjs from "dayjs";
 import DotLoader from "react-spinners/DotLoader";
 
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#FF6666",
+  "#A28CFF",
+  "#33CCCC",
+  "#FF33A1",
+  "#66FF66",
+  "#FF9933",
+];
+
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false); // New state for silent background refresh
   const [expiredCount, setExpiredCount] = useState(0);
   const [salesTrends, setSalesTrends] = useState([]);
+  const [cashierBreakdown, setCashierBreakdown] = useState([]);
   const [dailySales, setDailySales] = useState(0);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(dayjs().month() + 1);
@@ -33,20 +51,63 @@ const Dashboard = () => {
       minimumFractionDigits: 0,
     }).format(amount);
 
+  // const getDashboardData = async (isSilent = false) => {
+  //   if (!isSilent) setLoading(true);
+  //   else setRefreshing(true);
+
+  //   try {
+  //     const { data } = await axios.get(`${baseUrl}/dashboard`, {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+  //     setSalesTrends(data?.salesTrends || []);
+  //     setCashierBreakdown(data?.cashierBreakdown || []);
+  //     console.log(data);
+  //     setTopProducts(
+  //       (data?.topProducts || []).sort((a, b) => b.totalSold - a.totalSold)
+  //     );
+  //   } catch {
+  //     messageApi.error("Failed to load dashboard data.");
+  //   } finally {
+  //     if (!isSilent) setLoading(false);
+  //     else setRefreshing(false);
+  //   }
+  // };
+
   const getDashboardData = async (isSilent = false) => {
     if (!isSilent) setLoading(true);
     else setRefreshing(true);
 
     try {
-      const { data } = await axios.get(`${baseUrl}/dashboard`, {
+      const dashboardRes = await axios.get(`${baseUrl}/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setSalesTrends(data?.salesTrends || []);
+      console.log(dashboardRes.data)
+
+      const { salesTrends, cashierBreakdown, topProducts } = dashboardRes.data;
+
+      const usersRes = await axios.get(`${baseUrl}/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const users = usersRes.data?.users || [];
+
+      // Map cashier ID to full user object
+      const enrichedCashierBreakdown = cashierBreakdown.map((entry) => {
+        const cashier = users.find((user) => user._id === entry.cashierId);
+        return {
+          ...entry,
+          cashier: cashier || { fullName: "Unknown", _id: entry.cashierId },
+        };
+      });
+
+      setSalesTrends(salesTrends || []);
+      setCashierBreakdown(enrichedCashierBreakdown);
       setTopProducts(
-        (data?.topProducts || []).sort((a, b) => b.totalSold - a.totalSold)
+        (topProducts || []).sort((a, b) => b.totalSold - a.totalSold)
       );
-    } catch {
+    } catch (err) {
+      console.error("Dashboard data fetch error:", err);
       messageApi.error("Failed to load dashboard data.");
     } finally {
       if (!isSilent) setLoading(false);
@@ -128,6 +189,43 @@ const Dashboard = () => {
     { title: "Quantity Sold", dataIndex: "totalSold", key: "totalSold" },
   ];
 
+  const cashierColumns = [
+    {
+      title: "First Name",
+      key: "firstName",
+      render: (_, record) => <span>{record.cashier?.firstName || "N/A"}</span>,
+    },
+    {
+      title: "Last Name",
+      key: "lastName",
+      render: (_, record) => <span>{record.cashier?.lastName || "N/A"}</span>,
+    },
+    {
+      title: "Shop",
+      key: "shop",
+      render: (_, record) => (
+        <span>{record.cashier?.assignedShop?.name || "N/A"}</span>
+      ),
+    },
+    {
+      title: "Total Sales",
+      dataIndex: "totalSales",
+      key: "totalSales",
+      render: (value) => formatCurrency(value),
+    },
+    {
+      title: "Total Discount",
+      dataIndex: "totalDiscount",
+      key: "totalDiscount",
+      render: (value) => formatCurrency(value),
+    },
+    {
+      title: "Transactions",
+      dataIndex: "transactions",
+      key: "transactions",
+    },
+  ];
+
   return (
     <div className="p-4">
       {contextHolder}
@@ -173,7 +271,9 @@ const Dashboard = () => {
               <h2 className="font-bold">
                 Sales on {selectedDate?.format("YYYY-MM-DD")}
               </h2>
-              <h2 className="font-bold text-xl">{formatCurrency(dailySales)}</h2>
+              <h2 className="font-bold text-xl">
+                {formatCurrency(dailySales)}
+              </h2>
             </div>
           </div>
           <div className="flex justify-end">
@@ -243,6 +343,58 @@ const Dashboard = () => {
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-5">
+        <div className="bg-white rounded shadow p-4 overflow-x-auto">
+          <h2 className="text-lg font-bold mb-3">Cashier Breakdown</h2>
+          {loading ? (
+            <div className="flex justify-center items-center h-60">
+              <DotLoader />
+            </div>
+          ) : (
+            <Table
+              size="small"
+              columns={cashierColumns}
+              dataSource={cashierBreakdown}
+              rowKey="_id"
+              pagination={{ pageSize: 5, position: ["bottomCenter"] }}
+              scroll={{ x: true }}
+            />
+          )}
+        </div>
+
+        <div className="bg-white rounded shadow p-4">
+          <h2 className="text-lg font-bold mb-3">Cashier Sales Distribution</h2>
+          {loading ? (
+            <div className="flex justify-center items-center h-60">
+              <DotLoader />
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={cashierBreakdown}
+                  dataKey="totalSales"
+                  nameKey="cashier.fullName"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  label
+                >
+                  {cashierBreakdown.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
           )}
         </div>
       </div>
