@@ -21,7 +21,7 @@ const Store = () => {
   const { baseUrl, token } = useAuthConfig();
   const receiptRef = useRef();
   const [receiptCount, setReceiptCount] = useState(0);
-  const [searchTerm, setSearchTerm] = useState(""); // << search state
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchProducts = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -31,7 +31,7 @@ const Store = () => {
       });
       setProducts(data.products || []);
       if (!silent) messageApi.success("Products loaded");
-    } catch {
+    } catch (error) {
       messageApi.error("Failed to fetch products.");
     } finally {
       if (!silent) setLoading(false);
@@ -65,7 +65,9 @@ const Store = () => {
 
   const handleMinusClick = (index) => {
     const updatedCart = [...cart];
-    if (updatedCart[index].quantity > 1) updatedCart[index].quantity -= 1;
+    if (updatedCart[index].quantity > 1) {
+      updatedCart[index].quantity -= 1;
+    }
     setCart(updatedCart);
   };
 
@@ -76,7 +78,6 @@ const Store = () => {
   const logReceipt = async () => {
     setIsModalVisible(true);
     setReceiptLoading(true);
-
     try {
       const { data } = await axios.post(
         `${baseUrl}/preview`,
@@ -88,12 +89,10 @@ const Store = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const count = data.receipt.printCount;
-      setReceiptCount(count);
-
+      setReceiptCount(data.receipt.printCount);
       setReceiptId(data.receipt._id);
       setReceiptNumber(data.receipt.receiptCode);
-    } catch {
+    } catch (error) {
       messageApi.error("Failed to generate receipt.");
     } finally {
       setReceiptLoading(false);
@@ -106,7 +105,7 @@ const Store = () => {
   );
 
   const handlePrint = useReactToPrint({
-    contentRef: receiptRef,
+    content: () => receiptRef.current,
     onBeforePrint: async () => {
       setLoading(true);
       try {
@@ -136,175 +135,158 @@ const Store = () => {
     <div className="p-4">
       {contextHolder}
       <div className="flex flex-col lg:flex-row gap-4">
-        {/* Products */}
+        
+        {/* Products Section */}
         <div className="lg:w-2/3 w-full">
+          <div className="fixed top-15 z-20 bg-white p-3 rounded mb-4 min-w-3/6">
+            <Input
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              size="large"
+              allowClear
+              className="w-full"
+            />
+          </div>
+
           {loading ? (
             <div className="flex justify-center items-center h-60 bg-white">
               <DotLoader />
             </div>
           ) : (
-            <>
-              <div className="relative">
-                {/* Fixed Search Input */}
-                <div className="fixed top-16 z-10 bg-white p-3 shadow-md rounded mb-4 w-3/6">
-                  <Input
-                    type="text"
-                    placeholder="Search products..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="border p-2 w-full rounded focus:border-blue-500 focus:ring focus:ring-blue-200"
-                    size="large"
-                    allowClear
-                  />
-                </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 relative top-12 pb-20">
+              {products
+                .filter((product) =>
+                  product.title.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((product, index) => {
+                  const isOutOfStock = product.quantity === 0;
+                  const price = product.isDiscount
+                    ? product.unitPrice - product.discountAmount
+                    : product.unitPrice;
 
-                {loading ? (
-                  <div className="flex justify-center items-center h-60 bg-white">
-                    <DotLoader />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 relative top-20">
-                    {products
-                      .filter((product) =>
-                        product.title
-                          .toLowerCase()
-                          .includes(searchTerm.toLowerCase())
-                      )
-                      .map((product, index) => {
-                        const isOut = product.quantity === 0;
-                        const price = product.isDiscount
-                          ? product.unitPrice - product.discountAmount
-                          : product.unitPrice;
-
-                        return (
-                          <Card
-                            key={index}
-                            hoverable
-                            onClick={() =>
-                              !isOut && handleProductClick(product)
-                            }
-                            className={`p-1 cursor-pointer ${
-                              isOut ? "opacity-50" : ""
-                            }`}
-                            cover={
-                              <img
-                                alt={product.title}
-                                src={product.image || product_default}
-                                className="h-24 object-contain"
-                              />
-                            }
-                          >
-                            <h3 className="font-bold text-xs">
-                              {product.title}
-                            </h3>
-                            <p className="text-xs">₦{price}</p>
-                            <p
-                              className={`text-xs ${
-                                isOut
-                                  ? "text-red-500"
-                                  : product.quantity < 10
-                                  ? "text-orange-500"
-                                  : ""
-                              }`}
-                            >
-                              Qty: {product.quantity}
-                            </p>
-                          </Card>
-                        );
-                      })}
-
-                    {/* If no products match the search */}
-                    {products.filter((product) =>
-                      product.title
-                        .toLowerCase()
-                        .includes(searchTerm.toLowerCase())
-                    ).length === 0 && (
-                      <p className="text-center col-span-full">
-                        No products found
+                  return (
+                    <Card
+                      key={index}
+                      hoverable
+                      className={`p-1 ${isOutOfStock ? "opacity-50" : ""}`}
+                      onClick={() => !isOutOfStock && handleProductClick(product)}
+                      cover={
+                        <img
+                          alt={product.title}
+                          src={product.image || product_default}
+                          className="h-24 object-contain"
+                        />
+                      }
+                    >
+                      <h3 className="font-bold text-xs">{product.title}</h3>
+                      <p className="text-xs">₦{price}</p>
+                      <p
+                        className={`text-xs ${
+                          isOutOfStock
+                            ? "text-red-500"
+                            : product.quantity < 10
+                            ? "text-orange-500"
+                            : ""
+                        }`}
+                      >
+                        Qty: {product.quantity}
                       </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </>
+                    </Card>
+                  );
+                })}
+
+              {products.filter((product) =>
+                product.title.toLowerCase().includes(searchTerm.toLowerCase())
+              ).length === 0 && (
+                <p className="text-center col-span-full">No products found</p>
+              )}
+            </div>
           )}
         </div>
 
-        {/* Cart */}
+        {/* Cart Section */}
         <div className="lg:w-1/3 w-full">
-          <h2 className="text-lg font-bold mb-2">Cart</h2>
-          {cart.length === 0 ? (
-            <p>Cart is empty</p>
-          ) : (
-            <div className="bg-white p-3 rounded shadow-md">
-              <div className="max-h-96 overflow-y-auto">
-                {cart.map((item, index) => {
-                  const price = item.isDiscount
-                    ? item.unitPrice - item.discountAmount
-                    : item.unitPrice;
+          <div className="sticky top-4">
+            <div className="bg-white p-4 rounded shadow-md">
+              <h2 className="text-lg font-bold mb-4">Cart</h2>
+              {cart.length === 0 ? (
+                <p className="text-gray-500">Cart is empty</p>
+              ) : (
+                <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
+                  {cart.map((item, index) => {
+                    const price = item.isDiscount
+                      ? item.unitPrice - item.discountAmount
+                      : item.unitPrice;
 
-                  return (
-                    <div
-                      key={index}
-                      className="border-b py-2 flex justify-between items-center"
-                    >
-                      <div className="flex items-center">
-                        <img
-                          src={item.image || product_default}
-                          alt={item.title}
-                          className="w-10 h-10 object-contain"
-                        />
-                        <div className="ml-2">
-                          <h4 className="text-sm font-semibold">
-                            {item.title}
-                          </h4>
-                          <p className="text-sm">₦{price}</p>
+                    return (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center border-b py-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={item.image || product_default}
+                            alt={item.title}
+                            className="w-10 h-10 object-contain"
+                          />
+                          <div>
+                            <h4 className="text-sm font-semibold">{item.title}</h4>
+                            <p className="text-xs text-gray-500">₦{price}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <div
+                            className="bg-red-500 text-white p-1 rounded cursor-pointer"
+                            onClick={() => handleMinusClick(index)}
+                          >
+                            <RiSubtractFill size={16} />
+                          </div>
+                          <span className="px-2">{item.quantity}</span>
+                          <div
+                            className="bg-blue-500 text-white p-1 rounded cursor-pointer"
+                            onClick={() => handlePlusClick(index)}
+                          >
+                            <IoAdd size={16} />
+                          </div>
+                          <Button
+                            type="text"
+                            size="small"
+                            danger
+                            onClick={() => handleRemoveClick(index)}
+                          >
+                            <IoCloseOutline />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center">
-                        <div
-                          className="bg-red-600 text-white px-1 cursor-pointer"
-                          onClick={() => handleMinusClick(index)}
-                        >
-                          <RiSubtractFill size={20} />
-                        </div>
-                        <span className="px-2">{item.quantity}</span>
-                        <div
-                          className="bg-blue-600 text-white px-1 cursor-pointer"
-                          onClick={() => handlePlusClick(index)}
-                        >
-                          <IoAdd size={20} />
-                        </div>
-                        <Button
-                          size="small"
-                          danger
-                          className="ml-2"
-                          onClick={() => handleRemoveClick(index)}
-                        >
-                          <IoCloseOutline />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex justify-between mt-4 font-bold">
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Cart Total */}
+              <div className="flex justify-between font-bold text-lg mt-4">
                 <span>Total:</span>
                 <span>₦{total}</span>
               </div>
+
+              {/* Checkout */}
               <Button
                 type="primary"
                 className="w-full mt-4 bg-blue-600"
                 onClick={logReceipt}
+                disabled={cart.length === 0}
               >
                 Checkout
               </Button>
             </div>
-          )}
+          </div>
         </div>
+
       </div>
 
-      {/* Modal for Receipt */}
+      {/* Modal */}
       <Modal
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
