@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Button, Modal, Card, message } from "antd";
+import { Button, Modal, Card, message, Input } from "antd";
 import { IoAdd, IoCloseOutline } from "react-icons/io5";
 import { RiSubtractFill } from "react-icons/ri";
 import { useReactToPrint } from "react-to-print";
@@ -21,6 +21,7 @@ const Store = () => {
   const { baseUrl, token } = useAuthConfig();
   const receiptRef = useRef();
   const [receiptCount, setReceiptCount] = useState(0);
+  const [searchTerm, setSearchTerm] = useState(""); // << search state
 
   const fetchProducts = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -142,46 +143,90 @@ const Store = () => {
               <DotLoader />
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {products.map((product, index) => {
-                const isOut = product.quantity === 0;
-                const price = product.isDiscount
-                  ? product.unitPrice - product.discountAmount
-                  : product.unitPrice;
+            <>
+              <div className="relative">
+                {/* Fixed Search Input */}
+                <div className="fixed top-16 z-10 bg-white p-3 shadow-md rounded mb-4 w-3/6">
+                  <Input
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="border p-2 w-full rounded focus:border-blue-500 focus:ring focus:ring-blue-200"
+                    size="large"
+                    allowClear
+                  />
+                </div>
 
-                return (
-                  <Card
-                    key={index}
-                    hoverable
-                    onClick={() => !isOut && handleProductClick(product)}
-                    className={`p-1 cursor-pointer ${
-                      isOut ? "opacity-50" : ""
-                    }`}
-                    cover={
-                      <img
-                        alt={product.title}
-                        src={product.image || product_default}
-                        className="h-24 object-contain"
-                      />
-                    }
-                  >
-                    <h3 className="font-bold text-xs">{product.title}</h3>
-                    <p className="text-xs">₦{price}</p>
-                    <p
-                      className={`text-xs ${
-                        isOut
-                          ? "text-red-500"
-                          : product.quantity < 10
-                          ? "text-orange-500"
-                          : ""
-                      }`}
-                    >
-                      Qty: {product.quantity}
-                    </p>
-                  </Card>
-                );
-              })}
-            </div>
+                {loading ? (
+                  <div className="flex justify-center items-center h-60 bg-white">
+                    <DotLoader />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 relative top-20">
+                    {products
+                      .filter((product) =>
+                        product.title
+                          .toLowerCase()
+                          .includes(searchTerm.toLowerCase())
+                      )
+                      .map((product, index) => {
+                        const isOut = product.quantity === 0;
+                        const price = product.isDiscount
+                          ? product.unitPrice - product.discountAmount
+                          : product.unitPrice;
+
+                        return (
+                          <Card
+                            key={index}
+                            hoverable
+                            onClick={() =>
+                              !isOut && handleProductClick(product)
+                            }
+                            className={`p-1 cursor-pointer ${
+                              isOut ? "opacity-50" : ""
+                            }`}
+                            cover={
+                              <img
+                                alt={product.title}
+                                src={product.image || product_default}
+                                className="h-24 object-contain"
+                              />
+                            }
+                          >
+                            <h3 className="font-bold text-xs">
+                              {product.title}
+                            </h3>
+                            <p className="text-xs">₦{price}</p>
+                            <p
+                              className={`text-xs ${
+                                isOut
+                                  ? "text-red-500"
+                                  : product.quantity < 10
+                                  ? "text-orange-500"
+                                  : ""
+                              }`}
+                            >
+                              Qty: {product.quantity}
+                            </p>
+                          </Card>
+                        );
+                      })}
+
+                    {/* If no products match the search */}
+                    {products.filter((product) =>
+                      product.title
+                        .toLowerCase()
+                        .includes(searchTerm.toLowerCase())
+                    ).length === 0 && (
+                      <p className="text-center col-span-full">
+                        No products found
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
 
@@ -210,7 +255,9 @@ const Store = () => {
                           className="w-10 h-10 object-contain"
                         />
                         <div className="ml-2">
-                          <h4 className="text-sm font-semibold">{item.title}</h4>
+                          <h4 className="text-sm font-semibold">
+                            {item.title}
+                          </h4>
                           <p className="text-sm">₦{price}</p>
                         </div>
                       </div>
@@ -219,14 +266,14 @@ const Store = () => {
                           className="bg-red-600 text-white px-1 cursor-pointer"
                           onClick={() => handleMinusClick(index)}
                         >
-                          <RiSubtractFill size={20}/>
+                          <RiSubtractFill size={20} />
                         </div>
                         <span className="px-2">{item.quantity}</span>
                         <div
                           className="bg-blue-600 text-white px-1 cursor-pointer"
                           onClick={() => handlePlusClick(index)}
                         >
-                          <IoAdd size={20}/>
+                          <IoAdd size={20} />
                         </div>
                         <Button
                           size="small"
