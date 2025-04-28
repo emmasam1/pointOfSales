@@ -22,6 +22,7 @@ const Store = () => {
   const receiptRef = useRef();
   const [receiptCount, setReceiptCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
+    // const receiptWidth = "90mm";
 
   const fetchProducts = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -105,7 +106,7 @@ const Store = () => {
   );
 
   const handlePrint = useReactToPrint({
-    content: () => receiptRef.current,
+    contentRef: receiptRef,
     onBeforePrint: async () => {
       setLoading(true);
       try {
@@ -154,7 +155,7 @@ const Store = () => {
               <DotLoader />
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 relative top-12 pb-20">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 relative top-12">
               {products
                 .filter((product) =>
                   product.title.toLowerCase().includes(searchTerm.toLowerCase())
