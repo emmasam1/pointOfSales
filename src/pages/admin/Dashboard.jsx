@@ -12,6 +12,7 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  Legend
 } from "recharts";
 import axios from "axios";
 import { useAuthConfig } from "../../context/AppState";
@@ -69,14 +70,12 @@ const Dashboard = () => {
       setTransaction(dashboardRes.data?.monthlySummary?.totalTransactions);
       const { salesTrends, cashierBreakdown, topProducts } = dashboardRes.data;
 
-
       const usersRes = await axios.get(`${baseUrl}/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       console.log("dash details", dashboardRes.data.cashierDailyBreakdown);
       setCashierDailyBreakdown(dashboardRes.data.cashierDailyBreakdown || []);
-
 
       const users = usersRes.data?.users || [];
 
@@ -90,18 +89,20 @@ const Dashboard = () => {
       });
 
       const userDailyBrakeDown = dashboardRes.data.cashierDailyBreakdown
-      .map((entry) => {
-        const cashier = users.find((user) => user.email === entry.email);
-        return {
-          ...entry,
-          cashier: cashier || { fullName: "Unknown", _id: entry.cashierId },
-          firstName: cashier?.firstName || "Unknown",
-          lastName: cashier?.lastName || "",
-          fullName: cashier ? `${cashier.firstName} ${cashier.lastName}` : "Unknown",
-        };
-      })
-      .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date descending
-    
+        .map((entry) => {
+          const cashier = users.find((user) => user.email === entry.email);
+          return {
+            ...entry,
+            cashier: cashier || { fullName: "Unknown", _id: entry.cashierId },
+            firstName: cashier?.firstName || "Unknown",
+            lastName: cashier?.lastName || "",
+            fullName: cashier
+              ? `${cashier.firstName} ${cashier.lastName}`
+              : "Unknown",
+          };
+        })
+        .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date descending
+
       setCashierDailyBreakdown(userDailyBrakeDown);
 
       // console.log("user:", userDailyBrakeDown);
@@ -177,37 +178,35 @@ const Dashboard = () => {
 
   //     const interval = setInterval(() => {
   //       if (salesTrends.length > 0) {
-  //         getDashboardData(true); 
+  //         getDashboardData(true);
   //       }else{
   //         refreshing(false)
   //       }
   //       fetchExpiredProducts();
   //     }, 30000);
-      
 
   //     return () => clearInterval(interval);
   //   }
   // }, [baseUrl, token]);
   useEffect(() => {
     if (token && baseUrl) {
-      getDashboardData(); 
+      getDashboardData();
       fetchExpiredProducts();
     }
   }, [baseUrl, token]);
-  
+
   useEffect(() => {
     const interval = setInterval(() => {
       if (salesTrends.length > 0) {
-        getDashboardData(true); 
+        getDashboardData(true);
       } else {
         refreshing(false);
       }
       fetchExpiredProducts();
     }, 30000);
-  
+
     return () => clearInterval(interval);
   }, [salesTrends]); // Re-run interval if salesTrends changes
-  
 
   useEffect(() => {
     if (selectedDate && salesTrends.length > 0) {
@@ -222,37 +221,37 @@ const Dashboard = () => {
 
   const cashierColumns = [
     {
-      title: 'First Name',
-      dataIndex: 'firstName',
-      key: 'firstName',
+      title: "First Name",
+      dataIndex: "firstName",
+      key: "firstName",
     },
     {
-      title: 'Last Name',
-      dataIndex: 'lastName',
-      key: 'lastName',
+      title: "Last Name",
+      dataIndex: "lastName",
+      key: "lastName",
     },
-   
+
     {
-      title: 'Date',
-      dataIndex: 'date',
-      key: 'date',
-    },
-    {
-      title: 'Total Sales',
-      dataIndex: 'totalSales',
-      key: 'totalSales',
-      render: (value) => `₦${value.toLocaleString()}`
+      title: "Date",
+      dataIndex: "date",
+      key: "date",
     },
     {
-      title: 'Total Discount',
-      dataIndex: 'totalDiscount',
-      key: 'totalDiscount',
-      render: (value) => `₦${value.toLocaleString()}`
+      title: "Total Sales",
+      dataIndex: "totalSales",
+      key: "totalSales",
+      render: (value) => `₦${value.toLocaleString()}`,
     },
     {
-      title: 'Transactions',
-      dataIndex: 'transactions',
-      key: 'transactions',
+      title: "Total Discount",
+      dataIndex: "totalDiscount",
+      key: "totalDiscount",
+      render: (value) => `₦${value.toLocaleString()}`,
+    },
+    {
+      title: "Transactions",
+      dataIndex: "transactions",
+      key: "transactions",
     },
   ];
 
@@ -264,9 +263,8 @@ const Dashboard = () => {
       sales: item.totalSales,
     }));
 
-    console.log("chart data", formattedData)
+    console.log("chart data", formattedData);
 
-  
     return (
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={formattedData}>
@@ -278,7 +276,6 @@ const Dashboard = () => {
       </ResponsiveContainer>
     );
   };
-  
 
   return (
     <div className="p-4">
@@ -383,7 +380,11 @@ const Dashboard = () => {
                 columns={columns}
                 dataSource={topProducts}
                 rowKey="_id"
-                pagination={{ pageSize: 7, position: ["bottomCenter"], className: "custom-pagination", }}
+                pagination={{
+                  pageSize: 7,
+                  position: ["bottomCenter"],
+                  className: "custom-pagination",
+                }}
               />
             </div>
           )}
@@ -439,7 +440,11 @@ const Dashboard = () => {
               columns={cashierColumns}
               dataSource={cashierDailyBreakdown}
               rowKey="_id"
-              pagination={{ pageSize: 5, position: ["bottomCenter"], className: "custom-pagination", }}
+              pagination={{
+                pageSize: 5,
+                position: ["bottomCenter"],
+                className: "custom-pagination",
+              }}
             />
           )}
         </div>
@@ -452,6 +457,7 @@ const Dashboard = () => {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
+             
               <PieChart>
                 <Pie
                   data={cashierBreakdown}
@@ -471,6 +477,11 @@ const Dashboard = () => {
                   ))}
                 </Pie>
                 <Tooltip />
+                <Legend
+                  layout="vertical"
+                  verticalAlign="middle"
+                  align="right"
+                />
               </PieChart>
             </ResponsiveContainer>
           )}

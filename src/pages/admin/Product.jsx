@@ -559,14 +559,14 @@ const Product = () => {
             </Col>
             <Col span={12}>
               <Form.Item
-                label="Is Trending"
-                name="isTrending"
-                valuePropName="checked"
+                label="Discount Amount"
+                name="discountAmount"
                 className="mb-2"
               >
-                <Input type="checkbox" />
+                <Input placeholder="Enter discount amount" type="number" />
               </Form.Item>
             </Col>
+            
           </Row>
 
           <Row gutter={[16, 16]}>
@@ -575,20 +575,22 @@ const Product = () => {
                 label="Is Discount"
                 name="isDiscount"
                 valuePropName="checked"
-                className="mb-2"
+                className="!-mb-0"
               >
                 <Input type="checkbox" />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
-                label="Discount Amount"
-                name="discountAmount"
-                className="mb-2"
+                label="Is Trending"
+                name="isTrending"
+                valuePropName="checked"
+                className="!-mb-0"
               >
-                <Input placeholder="Enter discount amount" type="number" />
+                <Input type="checkbox" />
               </Form.Item>
             </Col>
+            
           </Row>
 
           <Row gutter={[16, 16]}>
