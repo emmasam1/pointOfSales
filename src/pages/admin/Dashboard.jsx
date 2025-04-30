@@ -104,7 +104,7 @@ const Dashboard = () => {
     
       setCashierDailyBreakdown(userDailyBrakeDown);
 
-      console.log("user:", userDailyBrakeDown);
+      // console.log("user:", userDailyBrakeDown);
       // console.log(enrichedCashierBreakdown)
 
       setSalesTrends(salesTrends || []);
@@ -170,19 +170,44 @@ const Dashboard = () => {
     localStorage.setItem("selectedDate", date.format("YYYY-MM-DD"));
   }, []);
 
+  // useEffect(() => {
+  //   if (token && baseUrl) {
+  //     getDashboardData(); // Initial load (with loader)
+  //     fetchExpiredProducts();
+
+  //     const interval = setInterval(() => {
+  //       if (salesTrends.length > 0) {
+  //         getDashboardData(true); 
+  //       }else{
+  //         refreshing(false)
+  //       }
+  //       fetchExpiredProducts();
+  //     }, 30000);
+      
+
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [baseUrl, token]);
   useEffect(() => {
     if (token && baseUrl) {
-      getDashboardData(); // Initial load (with loader)
+      getDashboardData(); 
       fetchExpiredProducts();
-
-      const interval = setInterval(() => {
-        getDashboardData(true); // Silent reload
-        fetchExpiredProducts();
-      }, 30000);
-
-      return () => clearInterval(interval);
     }
   }, [baseUrl, token]);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (salesTrends.length > 0) {
+        getDashboardData(true); 
+      } else {
+        refreshing(false);
+      }
+      fetchExpiredProducts();
+    }, 30000);
+  
+    return () => clearInterval(interval);
+  }, [salesTrends]); // Re-run interval if salesTrends changes
+  
 
   useEffect(() => {
     if (selectedDate && salesTrends.length > 0) {
