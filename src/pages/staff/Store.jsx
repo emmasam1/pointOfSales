@@ -1,3 +1,5 @@
+// File: pages/Store.jsx
+
 import React, { useState, useEffect, useRef } from "react";
 import { Button, Modal, Card, message, Input } from "antd";
 import { IoAdd, IoCloseOutline } from "react-icons/io5";
@@ -22,7 +24,6 @@ const Store = () => {
   const receiptRef = useRef();
   const [receiptCount, setReceiptCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-    // const receiptWidth = "90mm";
 
   const fetchProducts = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -30,6 +31,7 @@ const Store = () => {
       const { data } = await axios.get(`${baseUrl}/products`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log(data)
       setProducts(data.products || []);
       if (!silent) messageApi.success("Products loaded");
     } catch (error) {
@@ -136,7 +138,6 @@ const Store = () => {
     <div className="p-4">
       {contextHolder}
       <div className="flex flex-col lg:flex-row gap-4">
-        
         {/* Products Section */}
         <div className="lg:w-2/3 w-full">
           <div className="fixed top-15 z-20 bg-white p-3 rounded mb-4 min-w-3/6">
@@ -162,16 +163,20 @@ const Store = () => {
                 )
                 .map((product, index) => {
                   const isOutOfStock = product.quantity === 0;
+                  const isExpired = product.expiryDate && new Date(product.expiryDate) < new Date();
+                  const isUnavailable = isOutOfStock || isExpired;
                   const price = product.isDiscount
                     ? product.unitPrice - product.discountAmount
                     : product.unitPrice;
-
+                
                   return (
                     <Card
                       key={index}
-                      hoverable
-                      className={`p-1 ${isOutOfStock ? "opacity-50" : ""}`}
-                      onClick={() => !isOutOfStock && handleProductClick(product)}
+                      hoverable={!isUnavailable}
+                      className={`p-1 relative !py-2 ${isUnavailable ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                      onClick={() => {
+                        if (!isUnavailable) handleProductClick(product);
+                      }}
                       cover={
                         <img
                           alt={product.title}
@@ -180,6 +185,12 @@ const Store = () => {
                         />
                       }
                     >
+                      {product.isDiscount && product.discountAmount > 0 && (
+                        <p className="text-xs text-green-600 font-bold absolute top-2 right-2 bg-white px-1 rounded">
+                          -₦{product.discountAmount}
+                        </p>
+                      )}
+                
                       <h3 className="font-bold text-xs">{product.title}</h3>
                       <p className="text-xs">₦{price}</p>
                       <p
@@ -193,9 +204,19 @@ const Store = () => {
                       >
                         Qty: {product.quantity}
                       </p>
+                
+                      {isExpired && (
+                        <p className="text-red-600 text-xs font-bold">Expired</p>
+                      )}
+                
+                      {isOutOfStock && (
+                        <p className="text-red-500 text-xs font-bold">Out of Stock</p>
+                      )}
                     </Card>
                   );
                 })}
+                
+                
 
               {products.filter((product) =>
                 product.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -284,10 +305,9 @@ const Store = () => {
             </div>
           </div>
         </div>
-
       </div>
 
-      {/* Modal */}
+      {/* Modal for Receipt Preview */}
       <Modal
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}

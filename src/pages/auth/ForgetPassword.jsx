@@ -27,7 +27,13 @@ const ForgetPassword = () => {
   return (
     <div className="flex justify-center items-center h-screen bg-white">
       {contextHolder}
-      <Card style={{ width: 300 }}>
+      <Card className="w-3/12 !px-2">
+        <h1 className="text-center text-2xl md:text-2xl font-bold mb-4">
+          Reset Password
+        </h1>
+        <p className="text-center md:text-sm text-sm mb-6">
+          Provide your Email to Reset Password
+        </p>
         <Form
           name="reset-password"
           initialValues={{ remember: true }}
@@ -45,14 +51,18 @@ const ForgetPassword = () => {
           >
             <Input placeholder="Enter email" />
           </Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            style={{ width: "100%", background: "#000", marginTop: "1rem" }}
-            loading={loading}
-          >
-            {loading ? "Please wait..." : "Re-set Password"}
-          </Button>
+
+          <div className="flex justify-center items-center my-2">
+            <Button
+              type="primary"
+              htmlType="submit"
+              style={{ width: "100%", background: "#000" }}
+              className="mb-2 !w-30 !rounded-full text-[.7rem] px-7 text-sm"
+              loading={loading}
+            >
+              {loading ? "Please wait..." : "Re-set Password"}
+            </Button>
+          </div>
           <div className="flex gap-1 items-center mt-4">
             <div className="text-xs">Remembered your password?</div>
             <NavLink to="/" className="text-xs">

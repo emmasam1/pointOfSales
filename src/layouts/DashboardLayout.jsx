@@ -11,6 +11,7 @@ import {
   DialogPanel,
   DialogTitle,
 } from "@headlessui/react";
+import { FaTachometerAlt, FaUsers, FaBoxes, FaShoppingCart, FaReceipt } from "react-icons/fa";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import CryptoJS from "crypto-js";
 import * as jwt_decode from "jwt-decode";
@@ -29,18 +30,38 @@ function getItem(label, key, icon, children) {
 }
 
 const items = [
-  getItem("Dashboard", "/dashboard", <PieChartOutlined />),
-  getItem("Staffs", "/dashboard/staffs", <DesktopOutlined />),
-  getItem("Categories", "/dashboard/categories", <DesktopOutlined />),
-  getItem("Products", "/dashboard/products", <DesktopOutlined />),
-  getItem("Receipt", "/dashboard/receipt", <DesktopOutlined />),
+  getItem("Dashboard", "/dashboard", <FaTachometerAlt />),    
+  getItem("Staffs", "/dashboard/staffs", <FaUsers />),     
+  getItem("Categories", "/dashboard/categories", <FaBoxes />), 
+  getItem("Products", "/dashboard/products", <FaShoppingCart />),
+  getItem("Receipt", "/dashboard/receipt", <FaReceipt />), 
 ];
 
 const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const navigate = useNavigate();
-  const { user, baseUrl } = useAuthConfig();
+  const { user, baseUrl, token } = useAuthConfig();
+  console.log(user)
+
+  // const getUser = async () => {
+  //   const userUrl = `${baseUrl}/users`;
+  //  try { 
+  //   const res = await axios.get(userUrl, {
+  //     headers: {
+  //       Authorization: `Bearer ${token}`,
+  //     },
+  //   });
+  //   console.log(res)
+  //   }catch (error) {
+  //     console.error("Error fetching user data:", error);
+  //   }
+  // }
+  // useEffect(() => {
+  //   if (token) {
+  //     getUser();
+  //   }
+  // }, [token, baseUrl]);
 
   let title = "Default Title";
 
@@ -136,6 +157,15 @@ const DashboardLayout = () => {
   };
 
   useEffect(() => {
+    const handleResize = () => {
+      setCollapsed(window.innerWidth < 1000);
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
     const encryptedToken = sessionStorage.getItem("token");
 
     if (!encryptedToken) {
@@ -169,14 +199,23 @@ const DashboardLayout = () => {
         collapsible
         collapsed={collapsed}
         onCollapse={(value) => setCollapsed(value)}
+        theme="light"
+        style={{
+          backgroundColor: "#ffffff",
+          // borderTopRightRadius: "1rem",
+          // borderBottomRightRadius: "1rem",
+          position: "fixed",
+          height: "100vh",
+        }}
       >
         <div className="demo-logo-vertical" />
+        <h2 className="my-4 ml-3 font-semibold text-xl">Shop Name</h2>
         <Menu
-          theme="dark"
+          theme="light"
           selectedKeys={[selectedKey]}
           mode="inline"
-          style={{ height: "100%", borderRight: 0 }}
-        >
+          // style={{ height: "100%", borderRight: 0 }}
+          >
           {items.map((item) => (
             <Menu.Item key={item.key} icon={item.icon}>
               <Link to={item.key}>{item.label}</Link>
@@ -188,9 +227,14 @@ const DashboardLayout = () => {
       <Layout>
         {/* Header */}
         <Header
-          className="!px-3 flex items-center justify-between"
+          className="!px-3 flex items-center justify-between transition-all duration-300 z-50"
           style={{
+            position: "fixed",
+            top: 0,
+            left: collapsed ? 80 : 200,
+            width: `calc(100% - ${collapsed ? 80 : 200}px)`,
             background: colorBgContainer,
+            zIndex: 1000,
           }}
         >
           <h3 className="header-title text-2xl">{title}</h3>
@@ -209,7 +253,14 @@ const DashboardLayout = () => {
           </div>
         </Header>
 
-        <Content className="p-2">
+        <Content
+          className="p-4 transition-all duration-300"
+          style={{
+            marginLeft: collapsed ? 80 : 200,
+            paddingTop: 64,
+            width: `calc(100% - ${collapsed ? 80 : 200}px)`,
+          }}
+        >
           <Outlet />
         </Content>
       </Layout>
@@ -246,12 +297,7 @@ const DashboardLayout = () => {
                     >
                       Are you sure you want to log out?
                     </DialogTitle>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">
-                        Are you sure you want to log out? This action cannot be
-                        undone.
-                      </p>
-                    </div>
+  
                   </div>
                 </div>
               </div>

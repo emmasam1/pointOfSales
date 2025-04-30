@@ -38,6 +38,7 @@ const Dashboard = () => {
   const [expiredCount, setExpiredCount] = useState(0);
   const [salesTrends, setSalesTrends] = useState([]);
   const [cashierBreakdown, setCashierBreakdown] = useState([]);
+  const [cashierDailyBreakdown, setCashierDailyBreakdown] = useState([]);
   const [dailySales, setDailySales] = useState(0);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(dayjs().month() + 1);
@@ -68,9 +69,14 @@ const Dashboard = () => {
       setTransaction(dashboardRes.data?.monthlySummary?.totalTransactions);
       const { salesTrends, cashierBreakdown, topProducts } = dashboardRes.data;
 
+
       const usersRes = await axios.get(`${baseUrl}/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      console.log("dash details", dashboardRes.data.cashierDailyBreakdown);
+      setCashierDailyBreakdown(dashboardRes.data.cashierDailyBreakdown || []);
+
 
       const users = usersRes.data?.users || [];
 
@@ -83,6 +89,22 @@ const Dashboard = () => {
         };
       });
 
+      const userDailyBrakeDown = dashboardRes.data.cashierDailyBreakdown
+      .map((entry) => {
+        const cashier = users.find((user) => user.email === entry.email);
+        return {
+          ...entry,
+          cashier: cashier || { fullName: "Unknown", _id: entry.cashierId },
+          firstName: cashier?.firstName || "Unknown",
+          lastName: cashier?.lastName || "",
+          fullName: cashier ? `${cashier.firstName} ${cashier.lastName}` : "Unknown",
+        };
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date descending
+    
+      setCashierDailyBreakdown(userDailyBrakeDown);
+
+      console.log("user:", userDailyBrakeDown);
       // console.log(enrichedCashierBreakdown)
 
       setSalesTrends(salesTrends || []);
@@ -175,55 +197,55 @@ const Dashboard = () => {
 
   const cashierColumns = [
     {
-      title: "First Name",
-      key: "firstName",
-      render: (_, record) => <span>{record.cashier?.firstName || "N/A"}</span>,
+      title: 'First Name',
+      dataIndex: 'firstName',
+      key: 'firstName',
     },
     {
-      title: "Last Name",
-      key: "lastName",
-      render: (_, record) => <span>{record.cashier?.lastName || "N/A"}</span>,
+      title: 'Last Name',
+      dataIndex: 'lastName',
+      key: 'lastName',
+    },
+   
+    {
+      title: 'Date',
+      dataIndex: 'date',
+      key: 'date',
     },
     {
-      title: "Shop",
-      key: "shop",
-      render: (_, record) => (
-        <span>{record.cashier?.assignedShop?.name || "N/A"}</span>
-      ),
+      title: 'Total Sales',
+      dataIndex: 'totalSales',
+      key: 'totalSales',
+      render: (value) => `₦${value.toLocaleString()}`
     },
     {
-      title: "Total Sales",
-      dataIndex: "totalSales",
-      key: "totalSales",
-      render: (value) => formatCurrency(value),
+      title: 'Total Discount',
+      dataIndex: 'totalDiscount',
+      key: 'totalDiscount',
+      render: (value) => `₦${value.toLocaleString()}`
     },
     {
-      title: "Total Discount",
-      dataIndex: "totalDiscount",
-      key: "totalDiscount",
-      render: (value) => formatCurrency(value),
-    },
-    {
-      title: "Transactions",
-      dataIndex: "transactions",
-      key: "transactions",
+      title: 'Transactions',
+      dataIndex: 'transactions',
+      key: 'transactions',
     },
   ];
 
   const CashierChart = ({ data }) => {
+    console.log("raw chart input", data);
+
     const formattedData = data.map((item) => ({
-      name: item.cashier?.name || "Unknown",
+      firstName: item.cashier?.firstName || "Unknown",
       sales: item.totalSales,
     }));
 
+    console.log("chart data", formattedData)
+
+  
     return (
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={formattedData}>
-          <XAxis
-            data={cashierBreakdown}
-            dataKey="totalSales"
-            nameKey="cashier.firstName"
-          />
+          <XAxis dataKey="firstName" />
           <YAxis />
           <Tooltip />
           <Bar dataKey="sales" fill="#34d399" />
@@ -231,6 +253,7 @@ const Dashboard = () => {
       </ResponsiveContainer>
     );
   };
+  
 
   return (
     <div className="p-4">
@@ -323,7 +346,7 @@ const Dashboard = () => {
       {/* Charts & Table */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded shadow p-4 overflow-x-auto">
-          <h1 className="font-bold text-xl mb-3">Top Selling Products</h1>
+          <h2 className="font-bold text-lg mb-3">Top Selling Products</h2>
           {loading ? (
             <div className="flex justify-center items-center h-60">
               <DotLoader />
@@ -335,7 +358,7 @@ const Dashboard = () => {
                 columns={columns}
                 dataSource={topProducts}
                 rowKey="_id"
-                pagination={{ pageSize: 7, position: ["bottomCenter"] }}
+                pagination={{ pageSize: 7, position: ["bottomCenter"], className: "custom-pagination", }}
               />
             </div>
           )}
@@ -370,7 +393,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-5">
         <div className="bg-white rounded shadow p-4 overflow-x-auto">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-lg font-bold">Cashier Breakdown</h2>
+            <h2 className="text-lg font-bold">Cashier Daily Breakdown</h2>
             <Button
               className="!bg-gradient-to-r from-emerald-400 to-emerald-600 !text-white !font-bold"
               onClick={() => setViewChart(!viewChart)}
@@ -384,14 +407,14 @@ const Dashboard = () => {
               <DotLoader />
             </div>
           ) : viewChart ? (
-            <CashierChart data={cashierBreakdown} />
+            <CashierChart data={cashierDailyBreakdown} />
           ) : (
             <Table
               size="middle"
               columns={cashierColumns}
-              dataSource={cashierBreakdown}
-              rowKey={(record) => record.cashier?._id || record.cashierId}
-              pagination={{ pageSize: 5, position: ["bottomCenter"] }}
+              dataSource={cashierDailyBreakdown}
+              rowKey="_id"
+              pagination={{ pageSize: 5, position: ["bottomCenter"], className: "custom-pagination", }}
             />
           )}
         </div>

@@ -24,7 +24,10 @@ const SetPassword = () => {
 
   return (
     <div className="flex justify-center items-center h-screen bg-white">
-      <Card style={{ width: 300 }}>
+      <Card className="w-3/12 !px-2">
+        <h1 className="text-center text-2xl md:text-2xl font-bold mb-4">
+          Set a new Password
+        </h1>
         <Form name="set-password" onFinish={onFinish} layout="vertical">
           <Form.Item
             label="New Password"
@@ -52,14 +55,17 @@ const SetPassword = () => {
           >
             <Input.Password placeholder="Confirm password" />
           </Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            style={{ width: "100%", background: "#000" }}
-            loading={loading}
-          >
+          <div className="flex justify-center items-center my-2">
+            <Button
+              type="primary"
+              htmlType="submit"
+              style={{ width: "100%", background: "#000" }}
+              className="mb-2 !w-30 !rounded-full text-[.7rem] px-7 text-sm"
+              loading={loading}
+            >
             {loading ? "Please wait..." : "Set Password"}
           </Button>
+            </div>
         </Form>
       </Card>
 

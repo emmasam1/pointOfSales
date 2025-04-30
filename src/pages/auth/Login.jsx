@@ -41,7 +41,13 @@ const Login = () => {
   return (
     <div className="flex justify-center items-center h-screen bg-white">
       {contextHolder}
-      <Card style={{ width: 300 }}>
+      <Card className="w-3/12 !px-2">
+        <h1 className="text-center text-2xl md:text-2xl font-bold mb-4">
+          Enter Login Credentials
+        </h1>
+        <p className="text-center md:text-sm text-sm mb-6">
+          Provide your Email and password to sign in
+        </p>
         <Form
           name="login"
           onFinish={onFinish}
@@ -72,15 +78,17 @@ const Login = () => {
             <Input.Password placeholder="Enter password" />
           </Form.Item>
 
-          <Button
-            type="primary"
-            htmlType="submit"
-            style={{ width: "100%", background: "#000" }}
-            className="mb-2"
-            loading={loading}
-          >
-            {loading ? "Please wait..." : "Login"}
-          </Button>
+          <div className="flex justify-center items-center mb-2">
+            <Button
+              type="primary"
+              htmlType="submit"
+              style={{ width: "100%", background: "#000" }}
+              className="mb-2 !w-30 !rounded-full text-[.7rem] px-7 text-sm"
+              loading={loading}
+            >
+              {loading ? "Please wait..." : "Login"}
+            </Button>
+          </div>
 
           <div className="text-xs">
             Forget password? <NavLink to="/reset-password">Reset</NavLink>

@@ -1,15 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuthConfig } from "../../context/AppState";
-import {
-  Table,
-  Tooltip,
-  Modal,
-  message,
-  Form,
-  Input,
-  Button,
-} from "antd";
+import { Table, Tooltip, Modal, message, Form, Input, Button } from "antd";
 import { RiEditLine } from "react-icons/ri";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import DotLoader from "react-spinners/DotLoader";
@@ -181,8 +173,11 @@ const Categories = () => {
             dataSource={dataSource}
             rowKey="_id"
             size="small"
-            pagination={{ pageSize: 7, position: ["bottomCenter"] }}
-            className="custom-table"
+            pagination={{
+              pageSize: 5,
+              position: ["bottomCenter"],
+              className: "custom-pagination",
+            }}
             scroll={{ x: "max-content" }}
           />
         </div>
