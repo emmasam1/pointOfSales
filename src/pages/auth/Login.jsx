@@ -83,7 +83,7 @@ const Login = () => {
           </Button>
 
           <div className="text-xs">
-            Forget password? <NavLink to="/register">Reset</NavLink>
+            Forget password? <NavLink to="/reset-password">Reset</NavLink>
           </div>
         </Form>
       </Card>

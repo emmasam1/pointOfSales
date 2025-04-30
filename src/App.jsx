@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router";
 import Login from "./pages/auth/Login";
-import Register from "./pages/auth/Register";
 import Verify from "./pages/auth/Verify";
 import DashboardLayout from "./layouts/DashboardLayout";
 import Dashboard from "./pages/admin/Dashboard";
@@ -12,6 +11,8 @@ import StaffDashboardLayout from "./layouts/StaffDashboardLayout";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import Store from "./pages/staff/Store";
 import Receipt from "./pages/admin/Receipt";
+import ForgetPassword from "./pages/auth/ForgetPassword";
+import SetPassword from "./pages/auth/SetPassword";
 
 const App = () => {
   return (
@@ -19,8 +20,9 @@ const App = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/reset-password" element={<ForgetPassword />} />
           <Route path="/otp-verification" element={<Verify />} />
+          <Route path="/set-password" element={<SetPassword />} />
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route path="" element={<Dashboard />} />
             <Route path="products" element={<Product />} />
