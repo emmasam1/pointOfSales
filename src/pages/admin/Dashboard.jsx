@@ -66,7 +66,7 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // console.log(dashboardRes.data?.monthlySummary?.totalTransactions);
+      console.log("here", dashboardRes.data?.monthlySummary);
       setTransaction(dashboardRes.data?.monthlySummary?.totalTransactions);
       const { salesTrends, cashierBreakdown, topProducts } = dashboardRes.data;
 
@@ -200,7 +200,7 @@ const Dashboard = () => {
       if (salesTrends.length > 0) {
         getDashboardData(true);
       } else {
-        refreshing(false);
+        setRefreshing(false);
       }
       fetchExpiredProducts();
     }, 30000);

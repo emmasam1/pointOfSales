@@ -92,20 +92,29 @@ const StaffDashboardLayout = () => {
     }
   };
 
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!token) return;
+      try {
+        const response = await axios.get(`${baseUrl}/products`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setProducts(response.data.products);
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      }
+    };
+    fetchProducts();
+  }, [token]);
+
     useEffect(() => {
-      const fetchProducts = async () => {
-        if (!token) return;
-        try {
-          const response = await axios.get(`${baseUrl}/products`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setProducts(response.data.products);
-        } catch (err) {
-          console.error("Failed to fetch products:", err);
-        }
+      const handleResize = () => {
+        setCollapsed(window.innerWidth < 1000);
       };
-      fetchProducts();
-    }, [token]);
+      window.addEventListener("resize", handleResize);
+      handleResize();
+      return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
   const formatCurrency = (amount) =>
     new Intl.NumberFormat("en-NG", {
@@ -184,7 +193,9 @@ const StaffDashboardLayout = () => {
         return true;
       } catch (error) {
         // console.log(error.response.data.message )
-        messageApi.error(error.response.data.message || "Re-print failed. Printing canceled.");
+        messageApi.error(
+          error.response.data.message || "Re-print failed. Printing canceled."
+        );
         throw new Error("Print canceled.");
       } finally {
         setLoading(false);
@@ -222,8 +233,20 @@ const StaffDashboardLayout = () => {
   return (
     <Layout style={{ minHeight: "100vh" }}>
       {contextHolder}
-      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
-        <Menu theme="dark" selectedKeys={[selectedKey]} mode="inline">
+      <Sider
+        collapsible
+        collapsed={collapsed}
+        onCollapse={(value) => setCollapsed(value)}
+        theme="light"
+        style={{
+          backgroundColor: "#ffffff",
+          // borderTopRightRadius: "1rem",
+          // borderBottomRightRadius: "1rem",
+          position: "fixed",
+          height: "100vh",
+        }}
+      >
+        <Menu theme="light" selectedKeys={[selectedKey]} mode="inline">
           {items.map((item) => (
             <Menu.Item key={item.key} icon={item.icon}>
               <Link to={item.key}>{item.label}</Link>
@@ -269,7 +292,14 @@ const StaffDashboardLayout = () => {
           </div>
         </Header>
 
-        <Content className="p-4" style={{ marginTop: 64 }}>
+        <Content
+          className="p-4 transition-all duration-300"
+          style={{
+            marginLeft: collapsed ? 80 : 200,
+            paddingTop: 64,
+            width: `calc(100% - ${collapsed ? 80 : 200}px)`,
+          }}
+        >
           <Outlet />
         </Content>
       </Layout>

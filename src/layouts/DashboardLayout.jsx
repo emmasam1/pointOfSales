@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, Link } from "react-router";
-import { DesktopOutlined, PieChartOutlined } from "@ant-design/icons";
 import { Layout, Menu, theme, Button } from "antd";
 import { useAuthConfig } from "../context/AppState";
 import Time from "../components/time/Time";
@@ -43,25 +42,6 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const { user, baseUrl, token } = useAuthConfig();
   console.log(user)
-
-  // const getUser = async () => {
-  //   const userUrl = `${baseUrl}/users`;
-  //  try { 
-  //   const res = await axios.get(userUrl, {
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //   });
-  //   console.log(res)
-  //   }catch (error) {
-  //     console.error("Error fetching user data:", error);
-  //   }
-  // }
-  // useEffect(() => {
-  //   if (token) {
-  //     getUser();
-  //   }
-  // }, [token, baseUrl]);
 
   let title = "Default Title";
 
