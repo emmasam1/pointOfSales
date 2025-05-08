@@ -12,11 +12,11 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Legend
+  Legend,
 } from "recharts";
 import axios from "axios";
 import { useAuthConfig } from "../../context/AppState";
-import { message, DatePicker, Table, Select, Spin, Button } from "antd";
+import { message, DatePicker, Table, Select, Spin, Button, Space } from "antd";
 import dayjs from "dayjs";
 import DotLoader from "react-spinners/DotLoader";
 
@@ -42,11 +42,16 @@ const Dashboard = () => {
   const [cashierDailyBreakdown, setCashierDailyBreakdown] = useState([]);
   const [dailySales, setDailySales] = useState(0);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedMonth, setSelectedMonth] = useState(dayjs().month() + 1);
+  // const [selectedMonth, setSelectedMonth] = useState(dayjs().month() + 1);
   const [topProducts, setTopProducts] = useState([]);
   const [messageApi, contextHolder] = message.useMessage();
   const [transaction, setTransaction] = useState(0);
   const [viewChart, setViewChart] = useState(false);
+
+  const [selectedMonth, setSelectedMonth] = useState(dayjs().month() + 1);
+  const [selectedYear, setSelectedYear] = useState(dayjs().year());
+  const [dashboardData, setDashboardData] = useState();
+  const [monthlySales, setMonthlySales] = useState();
 
   const { baseUrl, token } = useAuthConfig();
 
@@ -67,6 +72,7 @@ const Dashboard = () => {
       });
 
       console.log("here", dashboardRes.data?.monthlySummary);
+      // setMonthlySales(dashboardRes.data?.monthlySummary)
       setTransaction(dashboardRes.data?.monthlySummary?.totalTransactions);
       const { salesTrends, cashierBreakdown, topProducts } = dashboardRes.data;
 
@@ -143,18 +149,64 @@ const Dashboard = () => {
     localStorage.setItem("selectedDate", date.format("YYYY-MM-DD"));
   };
 
-  const filteredMonthSales = salesTrends.filter(
-    (item) => dayjs(item.date).month() + 1 === selectedMonth
-  );
+  // const filteredMonthSales = salesTrends.filter(
+  //   (item) => dayjs(item.date).month() + 1 === selectedMonth
+  // );
 
-  const computedMonthlySales = filteredMonthSales.reduce(
-    (acc, item) => {
-      acc.totalSales += item.totalSales;
-      acc.totalTransactions += item.totalTransactions || 0;
-      return acc;
-    },
-    { totalSales: 0, totalTransactions: 0 }
-  );
+  // const computedMonthlySales = filteredMonthSales.reduce(
+  //   (acc, item) => {
+  //     acc.totalSales += item.totalSales;
+  //     acc.totalTransactions += item.totalTransactions || 0;
+  //     return acc;
+  //   },
+  //   { totalSales: 0, totalTransactions: 0 }
+  // );
+  const filteredMonthSales = React.useMemo(() => {
+    return salesTrends.filter(
+      (item) => dayjs(item.date).month() + 1 === selectedMonth
+    );
+  }, [salesTrends, selectedMonth]);
+
+  const computedMonthlySales = React.useMemo(() => {
+    return filteredMonthSales.reduce(
+      (acc, item) => {
+        acc.totalSales += item.totalSales;
+        acc.totalTransactions += item.totalTransactions || 0;
+        return acc;
+      },
+      { totalSales: 0, totalTransactions: 0 }
+    );
+  }, [filteredMonthSales]);
+
+  useEffect(() => {
+    const fetchSalesData = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          `https://trademate-bn9u.onrender.com/api/dashboard?month=${selectedMonth}&year=${selectedYear}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setDashboardData(response.data);
+        setSalesTrends(response.data.salesTrends || []);
+        setMonthlySales(response.data.monthlySummary.totalSales)
+        console.log("this is it", response.data.monthlySummary.totalSales);
+        console.log(
+          "Fetched data for month:",
+          selectedMonth,
+          "year:",
+          selectedYear
+        );
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSalesData();
+  }, [selectedMonth, selectedYear]);
 
   const calculateDailySales = () => {
     const selected = dayjs(selectedDate).format("YYYY-MM-DD");
@@ -192,8 +244,15 @@ const Dashboard = () => {
     if (token && baseUrl) {
       getDashboardData();
       fetchExpiredProducts();
+
+      const interval = setInterval(() => {
+        getDashboardData(true);
+        fetchExpiredProducts();
+      }, 30000);
+
+      return () => clearInterval(interval);
     }
-  }, [baseUrl, token]);
+  }, [token, baseUrl]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -298,22 +357,48 @@ const Dashboard = () => {
             <div className="text-right">
               <h2 className="font-semibold">Monthly Sales</h2>
               <h2 className="font-bold text-2xl">
-                {formatCurrency(computedMonthlySales.totalSales)}
+                {formatCurrency(monthlySales)}
               </h2>
             </div>
           </div>
           <div className="flex justify-end">
-            <Select
+            <Space>
+              <Select
+                defaultValue={dayjs().month() + 1}
+                style={{ width: 120 }}
+                onChange={(value) => setSelectedMonth(value)}
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <Select.Option key={i + 1} value={i + 1}>
+                    {dayjs().month(i).format("MMMM")}
+                  </Select.Option>
+                ))}
+              </Select>
+
+              <Select
+                defaultValue={dayjs().year()}
+                style={{ width: 100 }}
+                onChange={(value) => setSelectedYear(value)}
+              >
+                {[2023, 2024, 2025].map((year) => (
+                  <Select.Option key={year} value={year}>
+                    {year}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Space>
+
+            {/* <Select
               className="w-28 text-black"
               value={selectedMonth}
-              onChange={setSelectedMonth}
+              onChange={(value) => setSelectedMonth(Number(value))} // ensure it's a number
             >
               {Array.from({ length: 12 }, (_, i) => (
                 <Select.Option key={i + 1} value={i + 1}>
                   {dayjs().month(i).format("MMMM")}
                 </Select.Option>
               ))}
-            </Select>
+            </Select> */}
           </div>
         </div>
 
@@ -457,7 +542,6 @@ const Dashboard = () => {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
-             
               <PieChart>
                 <Pie
                   data={cashierBreakdown}
