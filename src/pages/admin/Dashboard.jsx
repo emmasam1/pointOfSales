@@ -51,7 +51,7 @@ const Dashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(dayjs().month() + 1);
   const [selectedYear, setSelectedYear] = useState(dayjs().year());
   const [dashboardData, setDashboardData] = useState();
-  const [monthlySales, setMonthlySales] = useState();
+  const [monthlySales, setMonthlySales] = useState(0);
 
   const { baseUrl, token } = useAuthConfig();
 
@@ -71,7 +71,7 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("here", dashboardRes.data?.monthlySummary);
+      // console.log("here", dashboardRes.data?.monthlySummary);
       // setMonthlySales(dashboardRes.data?.monthlySummary)
       setTransaction(dashboardRes.data?.monthlySummary?.totalTransactions);
       const { salesTrends, cashierBreakdown, topProducts } = dashboardRes.data;
@@ -80,7 +80,7 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("dash details", dashboardRes.data.cashierDailyBreakdown);
+      // console.log("dash details", dashboardRes.data.cashierDailyBreakdown);
       setCashierDailyBreakdown(dashboardRes.data.cashierDailyBreakdown || []);
 
       const users = usersRes.data?.users || [];
@@ -190,14 +190,18 @@ const Dashboard = () => {
         );
         setDashboardData(response.data);
         setSalesTrends(response.data.salesTrends || []);
-        setMonthlySales(response.data.monthlySummary.totalSales)
-        console.log("this is it", response.data.monthlySummary.totalSales);
-        console.log(
-          "Fetched data for month:",
-          selectedMonth,
-          "year:",
-          selectedYear
-        );
+        setMonthlySales(response.data.monthlySummary?.totalSales || 0);
+
+        setSelectedMonth(dayjs().month() + 1);
+        setSelectedYear(dayjs().year());
+
+        // console.log("this is it", response.data.monthlySummary.totalSales);
+        // console.log(
+        //   "Fetched data for month:",
+        //   selectedMonth,
+        //   "year:",
+        //   selectedYear
+        // );
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -206,7 +210,7 @@ const Dashboard = () => {
     };
 
     fetchSalesData();
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, token]);
 
   const calculateDailySales = () => {
     const selected = dayjs(selectedDate).format("YYYY-MM-DD");
@@ -357,7 +361,7 @@ const Dashboard = () => {
             <div className="text-right">
               <h2 className="font-semibold">Monthly Sales</h2>
               <h2 className="font-bold text-2xl">
-                {formatCurrency(monthlySales)}
+                {formatCurrency(monthlySales || 0)}
               </h2>
             </div>
           </div>
