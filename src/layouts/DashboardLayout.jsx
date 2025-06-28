@@ -41,7 +41,7 @@ const DashboardLayout = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const navigate = useNavigate();
   const { user, baseUrl, token } = useAuthConfig();
-  console.log(user)
+  // console.log(user)
 
   let title = "Default Title";
 

@@ -183,7 +183,7 @@ const Dashboard = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `https://trademate-bn9u.onrender.com/api/dashboard?month=${selectedMonth}&year=${selectedYear}`,
+          `${baseUrl}/dashboard?month=${selectedMonth}&year=${selectedYear}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

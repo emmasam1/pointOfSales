@@ -41,7 +41,8 @@ const Login = () => {
   return (
     <div className="flex justify-center items-center h-screen bg-white">
       {contextHolder}
-      <Card className="w-3/12 !px-2">
+     
+      <Card className="sm:w-auto max-w-sm !px-2">
         <h1 className="text-center text-2xl md:text-2xl font-bold mb-4">
           Enter Login Credentials
         </h1>
